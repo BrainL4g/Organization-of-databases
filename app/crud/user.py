@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional, Union
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import func, and_
+from sqlalchemy.orm import selectinload
 from app.crud.base import CRUDBase
 from app.models.user import BankClient, SystemUser, UserContact
 from app.schemas.user import (
