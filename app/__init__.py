@@ -1,1 +1,0 @@
-"""Banking API - асинхронный банковский API на FastAPI."""
