@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.app.api import (
+from app.api import (
     health_router,
     auth_router,
     clients_router,

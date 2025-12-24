@@ -2,9 +2,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Sequence
 
-from backend.app.crud.base import CRUDBase
-from backend.app.models.account import Account
-from backend.app.schemas.account import AccountCreate, AccountUpdate
+from app.crud.base import CRUDBase
+from app.models.account import Account
+from app.schemas.account import AccountCreate, AccountUpdate
 
 
 class CRUDAccount(CRUDBase[Account, AccountCreate, AccountUpdate]):

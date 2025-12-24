@@ -4,8 +4,8 @@ from sqlalchemy import Integer, String, Numeric, DateTime, func, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from typing import List
 
-from backend.app.models.base import Base
-from backend.app.models.enums import TransactionStatusEnum, OperationType
+from app.models.base import Base
+from app.models.enums import TransactionStatusEnum, OperationType
 
 
 class TransactionType(Base):

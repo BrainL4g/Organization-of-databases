@@ -2,9 +2,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 
-from backend.app.crud.base import CRUDBase
-from backend.app.models.client import Client
-from backend.app.schemas.client import ClientCreate, ClientUpdate
+from app.crud.base import CRUDBase
+from app.models.client import Client
+from app.schemas.client import ClientCreate, ClientUpdate
 
 
 class CRUDClient(CRUDBase[Client, ClientCreate, ClientUpdate]):

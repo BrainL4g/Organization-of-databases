@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.app.core.database import get_db
-from backend.app.core.exceptions import NotFoundException
-from backend.app.crud.crud_product import product_crud
-from backend.app.schemas.product import ProductOut
-from backend.app.utils.pagination import PaginatedResponse
+from app.core.database import get_db
+from app.core.exceptions import NotFoundException
+from app.crud.crud_product import product_crud
+from app.schemas.product import ProductOut
+from app.utils.pagination import PaginatedResponse
 
 router = APIRouter(prefix="/products", tags=["products"])
 

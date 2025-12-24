@@ -1,12 +1,12 @@
-from backend.app.api.health import router as health_router
-from backend.app.api.auth import router as auth_router
-from backend.app.api.clients import router as clients_router
-from backend.app.api.accounts import router as accounts_router
-from backend.app.api.products import router as products_router
-from backend.app.api.contracts import router as contracts_router
-from backend.app.api.deposits import router as deposits_router
-from backend.app.api.transactions import router as transactions_router
-from backend.app.api.currency_rates import router as currency_rates_router
+from app.api.health import router as health_router
+from app.api.auth import router as auth_router
+from app.api.clients import router as clients_router
+from app.api.accounts import router as accounts_router
+from app.api.products import router as products_router
+from app.api.contracts import router as contracts_router
+from app.api.deposits import router as deposits_router
+from app.api.transactions import router as transactions_router
+from app.api.currency_rates import router as currency_rates_router
 
 __all__ = [
     "health_router",

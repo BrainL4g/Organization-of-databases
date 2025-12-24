@@ -1,9 +1,9 @@
 from decimal import Decimal
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.app.models.transaction import Transaction, LedgerEntry
-from backend.app.models.enums import OperationType
-from backend.app.services.account_service import account_service
+from app.models.transaction import Transaction, LedgerEntry
+from app.models.enums import OperationType
+from app.services.account_service import account_service
 
 
 class TransactionService:

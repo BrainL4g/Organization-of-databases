@@ -2,13 +2,13 @@ from datetime import date
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.app.core.database import get_db
-from backend.app.dependencies.auth import get_current_user_id
-from backend.app.core.exceptions import NotFoundException, BadRequestException
-from backend.app.crud.crud_deposit import deposit_crud
-from backend.app.services.deposit_service import deposit_service
-from backend.app.schemas.deposit import DepositOut, InterestPaymentOut
-from backend.app.utils.pagination import PaginatedResponse
+from app.core.database import get_db
+from app.dependencies.auth import get_current_user_id
+from app.core.exceptions import NotFoundException, BadRequestException
+from app.crud.crud_deposit import deposit_crud
+from app.services.deposit_service import deposit_service
+from app.schemas.deposit import DepositOut, InterestPaymentOut
+from app.utils.pagination import PaginatedResponse
 
 router = APIRouter(prefix="/deposits", tags=["deposits"])
 

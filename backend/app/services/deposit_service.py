@@ -2,13 +2,12 @@ from decimal import Decimal
 from datetime import date
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.app.models.deposit import Deposit, InterestPayment
-from backend.app.models.account import Account
-from backend.app.models.enums import DepositStatus
-from backend.app.models.transaction import Transaction, LedgerEntry
-from backend.app.models.enums import OperationType, TransactionStatusEnum
+from app.models.deposit import Deposit, InterestPayment
+from app.models.enums import DepositStatus
+from app.models.transaction import Transaction, LedgerEntry
+from app.models.enums import OperationType, TransactionStatusEnum
 
-from backend.app.services.account_service import account_service
+from app.services.account_service import account_service
 
 
 class DepositService:

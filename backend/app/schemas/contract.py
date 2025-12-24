@@ -2,8 +2,8 @@ from pydantic import BaseModel
 from decimal import Decimal
 from datetime import date
 
-from backend.app.schemas.base import BaseResponse
-from backend.app.models.enums import ContractStatus
+from app.schemas.base import BaseResponse
+from app.models.enums import ContractStatus
 
 class ContractCreate(BaseModel):
     id_product: int

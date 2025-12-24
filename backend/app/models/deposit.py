@@ -4,8 +4,8 @@ from sqlalchemy import Integer, Numeric, Date, String, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from typing import List
 
-from backend.app.models.base import Base
-from backend.app.models.enums import DepositStatus
+from app.models.base import Base
+from app.models.enums import DepositStatus
 
 
 class Deposit(Base):

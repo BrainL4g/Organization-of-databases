@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.app.core.database import get_db
-from backend.app.core.exceptions import NotFoundException
-from backend.app.crud.crud_currency_rate import currency_rate_crud
-from backend.app.services.currency_service import currency_service
-from backend.app.schemas.currency import CurrencyRateOut
-from backend.app.utils.pagination import PaginatedResponse
+from app.core.database import get_db
+from app.core.exceptions import NotFoundException
+from app.crud.crud_currency_rate import currency_rate_crud
+from app.services.currency_service import currency_service
+from app.schemas.currency import CurrencyRateOut
+from app.utils.pagination import PaginatedResponse
 
 router = APIRouter(prefix="/currency-rates", tags=["currency"])
 

@@ -2,7 +2,7 @@ from sqlalchemy import Integer, String, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from typing import List
 
-from backend.app.models.base import Base
+from app.models.base import Base
 
 
 class Client(Base):

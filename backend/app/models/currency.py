@@ -4,7 +4,7 @@ from sqlalchemy import String, Integer, Numeric, Date, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from typing import List
 
-from backend.app.models.base import Base
+from app.models.base import Base
 
 
 class Currency(Base):

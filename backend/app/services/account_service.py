@@ -1,7 +1,7 @@
 from decimal import Decimal
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.app.models.account import Account
+from app.models.account import Account
 
 
 class AccountService:

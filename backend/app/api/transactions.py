@@ -2,14 +2,14 @@ from decimal import Decimal
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.app.core.database import get_db
-from backend.app.dependencies.auth import get_current_user_id
-from backend.app.core.exceptions import NotFoundException, BadRequestException
-from backend.app.crud.crud_account import account_crud
-from backend.app.crud.crud_transaction import transaction_crud
-from backend.app.services.transaction_service import transaction_service
-from backend.app.schemas.transaction import TransactionOut
-from backend.app.utils.pagination import PaginatedResponse
+from app.core.database import get_db
+from app.dependencies.auth import get_current_user_id
+from app.core.exceptions import NotFoundException, BadRequestException
+from app.crud.crud_account import account_crud
+from app.crud.crud_transaction import transaction_crud
+from app.services.transaction_service import transaction_service
+from app.schemas.transaction import TransactionOut
+from app.utils.pagination import PaginatedResponse
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 

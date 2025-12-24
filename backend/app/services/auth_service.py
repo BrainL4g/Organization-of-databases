@@ -1,9 +1,9 @@
 from datetime import timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.app.core.security import get_password_hash, verify_password, create_access_token
-from backend.app.crud.crud_client import client_crud
-from backend.app.schemas.token import Token
+from app.core.security import get_password_hash, verify_password, create_access_token
+from app.crud.crud_client import client_crud
+from app.schemas.token import Token
 
 
 class AuthService:

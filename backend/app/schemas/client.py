@@ -3,7 +3,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel, EmailStr, Field
 
-from backend.app.schemas.base import BaseResponse
+from app.schemas.base import BaseResponse
 
 
 class ClientContactOut(BaseResponse):

@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from decimal import Decimal
 from datetime import datetime
 
-from backend.app.schemas.base import BaseResponse
+from app.schemas.base import BaseResponse
 
 
 class AccountCreate(BaseModel):

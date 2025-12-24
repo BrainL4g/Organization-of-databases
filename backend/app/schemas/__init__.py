@@ -1,11 +1,11 @@
-from backend.app.schemas.token import Token
-from backend.app.schemas.client import ClientCreate, ClientUpdate, ClientOut, ClientContactOut
-from backend.app.schemas.account import AccountCreate, AccountUpdate, AccountOut
-from backend.app.schemas.product import ProductOut
-from backend.app.schemas.contract import ContractCreate, ContractOut
-from backend.app.schemas.deposit import DepositOut, InterestPaymentOut
-from backend.app.schemas.transaction import TransactionOut
-from backend.app.schemas.currency import CurrencyRateOut
+from app.schemas.token import Token
+from app.schemas.client import ClientCreate, ClientUpdate, ClientOut, ClientContactOut
+from app.schemas.account import AccountCreate, AccountUpdate, AccountOut
+from app.schemas.product import ProductOut
+from app.schemas.contract import ContractCreate, ContractOut
+from app.schemas.deposit import DepositOut, InterestPaymentOut
+from app.schemas.transaction import TransactionOut
+from app.schemas.currency import CurrencyRateOut
 
 __all__ = [
     "Token",

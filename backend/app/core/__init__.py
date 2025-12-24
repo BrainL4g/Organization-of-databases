@@ -1,6 +1,6 @@
-from backend.app.core.config import settings
-from backend.app.core.database import engine, AsyncSessionLocal, get_db, Base
-from backend.app.core.security import (
+from app.core.config import settings
+from app.core.database import engine, AsyncSessionLocal, get_db, Base
+from app.core.security import (
     pwd_context,
     verify_password,
     get_password_hash,
@@ -8,7 +8,7 @@ from backend.app.core.security import (
     oauth2_scheme,
     get_current_user_id,
 )
-from backend.app.core.exceptions import (
+from app.core.exceptions import (
     NotFoundException,
     ConflictException,
     ForbiddenException,

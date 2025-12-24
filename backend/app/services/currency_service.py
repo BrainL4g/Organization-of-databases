@@ -1,7 +1,7 @@
 from datetime import date
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.app.crud.crud_currency_rate import currency_rate_crud
+from app.crud.crud_currency_rate import currency_rate_crud
 
 
 class CurrencyService:
