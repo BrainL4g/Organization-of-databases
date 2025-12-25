@@ -46,7 +46,7 @@ const AdminDashboard = () => {
   };
 
   const handleBlockToggle = (user) => {
-    user.is_blocked = !user.is_blocked;
+    user.is_blocked = !user.is_blocked ?? true; // Добавляем поле, если его нет
     saveData();
     showMessage(`Учётная запись ${user.full_name} ${user.is_blocked ? 'заблокирована' : 'разблокирована'}`);
   };
@@ -57,11 +57,12 @@ const AdminDashboard = () => {
       if (index !== -1) {
         mockUsers.splice(index, 1);
         saveData();
-        showMessage(`Пользователь ${user.full_name} удалён из системы`);
+        showMessage(`Пользователь ${user.full_name} успешно удалён из системы`);
       }
     }
   };
 
+  // Фильтруем админа из списка
   const users = mockUsers.filter(u => u.role !== 'admin');
 
   return (
@@ -93,39 +94,45 @@ const AdminDashboard = () => {
           </tr>
         </thead>
         <tbody>
-          {users.map(user => (
-            <tr key={user.id}>
-              <td className="text-center">{user.id}</td>
-              <td>{user.full_name}</td>
-              <td className="text-center">
-                <Badge bg={user.role === 'employee' ? 'info' : 'secondary'}>
-                  {user.role === 'employee' ? 'Сотрудник' : 'Клиент'}
-                </Badge>
-              </td>
-              <td>{user.email}</td>
-              <td className="text-center">
-                <Badge bg={user.is_blocked ? 'danger' : 'success'}>
-                  {user.is_blocked ? 'Заблокирован' : 'Активен'}
-                </Badge>
-              </td>
-              <td className="text-center">
-                <Button variant="warning" size="sm" className="me-2">
-                  Редактировать
-                </Button>
-                <Button
-                  variant={user.is_blocked ? 'success' : 'secondary'}
-                  size="sm"
-                  className="me-2"
-                  onClick={() => handleBlockToggle(user)}
-                >
-                  {user.is_blocked ? 'Разблокировать' : 'Блокировать'}
-                </Button>
-                <Button variant="danger" size="sm" onClick={() => handleDelete(user)}>
-                  Удалить
-                </Button>
-              </td>
+          {users.length === 0 ? (
+            <tr>
+              <td colSpan="6" className="text-center">Пользователей нет</td>
             </tr>
-          ))}
+          ) : (
+            users.map(user => (
+              <tr key={user.id}>
+                <td className="text-center">{user.id}</td>
+                <td>{user.full_name}</td>
+                <td className="text-center">
+                  <Badge bg={user.role === 'employee' ? 'info' : 'secondary'}>
+                    {user.role === 'employee' ? 'Сотрудник' : 'Клиент'}
+                  </Badge>
+                </td>
+                <td>{user.email}</td>
+                <td className="text-center">
+                  <Badge bg={user.is_blocked ? 'danger' : 'success'}>
+                    {user.is_blocked ? 'Заблокирован' : 'Активен'}
+                  </Badge>
+                </td>
+                <td className="text-center">
+                  <Button variant="warning" size="sm" className="me-2">
+                    Редактировать
+                  </Button>
+                  <Button
+                    variant={user.is_blocked ? 'success' : 'secondary'}
+                    size="sm"
+                    className="me-2"
+                    onClick={() => handleBlockToggle(user)}
+                  >
+                    {user.is_blocked ? 'Разблокировать' : 'Блокировать'}
+                  </Button>
+                  <Button variant="danger" size="sm" onClick={() => handleDelete(user)}>
+                    Удалить
+                  </Button>
+                </td>
+              </tr>
+            ))
+          )}
         </tbody>
       </Table>
 

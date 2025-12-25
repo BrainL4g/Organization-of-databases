@@ -53,7 +53,7 @@ const ClientDashboard = () => {
     };
 
     mockCreditApplications.push(newApplication);
-    saveData();
+    saveData(); // Сохраняем
 
     showMessage(`Заявка на ${applyType} на сумму ${parseFloat(application.amount).toLocaleString('ru-RU')} ₽ успешно отправлена`);
     setApplication({ amount: '', term_months: '' });
@@ -71,7 +71,7 @@ const ClientDashboard = () => {
     const receiverId = parseInt(transfer.receiver);
     const amount = parseFloat(transfer.amount);
 
-    if (!transfer.sender || !transfer.receiver || isNaN(amount) || amount <= 0) {
+    if (isNaN(senderId) || isNaN(receiverId) || isNaN(amount) || amount <= 0) {
       showMessage('Проверьте правильность заполнения полей', 'danger');
       return;
     }
@@ -89,11 +89,11 @@ const ClientDashboard = () => {
       return;
     }
 
-    // Реальный перевод денег
+    // Реальный перевод: меняем балансы
     senderAccount.balance -= amount;
     receiverAccount.balance += amount;
 
-    // Запись транзакции
+    // Добавляем транзакцию
     const newTransaction = {
       id_transaction: mockTransactions.length + 1,
       sender_account_id: senderId,
@@ -105,9 +105,11 @@ const ClientDashboard = () => {
     };
 
     mockTransactions.push(newTransaction);
-    saveData(); // Сохраняем изменения в localStorage
 
-    showMessage(`Перевод ${amount.toLocaleString('ru-RU')} ₽ успешно выполнен`);
+    // КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: сохраняем все данные в localStorage
+    saveData();
+
+    showMessage(`Перевод ${amount.toLocaleString('ru-RU')} ₽ успешно выполнен. Баланс обновлён.`);
     setTransfer({ sender: '', receiver: '', amount: '', description: '' });
     setShowTransferModal(false);
   };
