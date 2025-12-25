@@ -17,7 +17,7 @@ export const AuthProvider = ({ children }) => {
     if (user) {
       const { password: _, ...userWithoutPass } = user;
       setCurrentUser(userWithoutPass);
-      localStorage.setItem('user', JSON.stringify(userWithoutPass));
+      sessionStorage.setItem('user', JSON.stringify(userWithoutPass));
       return true;
     }
     return false;
@@ -25,32 +25,19 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     setCurrentUser(null);
-    localStorage.removeItem('user');
+    sessionStorage.removeItem('user');
   };
 
   useEffect(() => {
-    const saved = localStorage.getItem('user');
+    const saved = sessionStorage.getItem('user');
     if (saved) {
       try {
         setCurrentUser(JSON.parse(saved));
       } catch (e) {
-        localStorage.removeItem('user');
+        sessionStorage.removeItem('user');
       }
     }
     setLoading(false);
-
-    // Слушатель для синхронизации между вкладками
-    const handleStorageChange = (e) => {
-      if (e.key === 'user') {
-        if (e.newValue) {
-          setCurrentUser(JSON.parse(e.newValue));
-        } else {
-          setCurrentUser(null);
-        }
-      }
-    };
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   return (

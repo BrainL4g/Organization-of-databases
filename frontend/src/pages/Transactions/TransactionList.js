@@ -1,7 +1,16 @@
 // src/pages/Transactions/TransactionList.js
 import React, { useState } from 'react';
-import { Table, Button, Modal, Form, Alert } from 'react-bootstrap';
-import { mockAccounts, mockTransactions } from '../../data/mockData'; // Исправлено: добавлен mockTransactions, удалён неиспользуемый mockClients
+import {
+  Table,
+  Button,
+  Modal,
+  Form,
+  Alert,
+  Badge,
+  Row,
+  Col,
+} from 'react-bootstrap';
+import { mockAccounts, mockTransactions, saveData } from '../../data/mockData';
 import { useAuth } from '../../context/AuthContext';
 import { ROLES } from '../../utils/roles';
 
@@ -14,55 +23,111 @@ const TransactionList = () => {
     senderAccount: '',
     receiverAccount: '',
     amount: '',
-    description: ''
+    description: '',
   });
-  const [success, setSuccess] = useState('');
-  const [error, setError] = useState('');
+  const [modalError, setModalError] = useState('');
+  const [modalSuccess, setModalSuccess] = useState('');
 
-  // Фильтрация транзакций для клиента (только связанные с его счетами)
+  // Фильтры
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
+  const [filterType, setFilterType] = useState('all');
+
+  // ID клиента для демонстрации
+  const clientId = 1;
   const clientAccountIds = mockAccounts
-    .filter(acc => acc.id_client === 1) // Мок: клиент с id_client = 1
-    .map(acc => acc.id_account);
+    .filter((acc) => acc.id_client === clientId)
+    .map((acc) => acc.id_account);
 
-  const filteredTransactions = isClient
-    ? mockTransactions.filter(t =>
-        clientAccountIds.includes(t.sender_account_id) ||
-        clientAccountIds.includes(t.receiver_account_id)
+  let transactions = isClient
+    ? mockTransactions.filter(
+        (t) =>
+          clientAccountIds.includes(t.sender_account_id) ||
+          (t.receiver_account_id && clientAccountIds.includes(t.receiver_account_id))
       )
-    : mockTransactions; // Для сотрудника/админа — все транзакции
+    : mockTransactions;
+
+  // Исправленная фильтрация по дате
+  if (filterDateFrom) {
+    const fromDate = new Date(filterDateFrom);
+    fromDate.setHours(0, 0, 0, 0); // Начало дня
+    transactions = transactions.filter((t) => {
+      const transactionDate = new Date(t.created_at);
+      return transactionDate >= fromDate;
+    });
+  }
+
+  if (filterDateTo) {
+    const toDate = new Date(filterDateTo);
+    toDate.setHours(23, 59, 59, 999); // Конец дня
+    transactions = transactions.filter((t) => {
+      const transactionDate = new Date(t.created_at);
+      return transactionDate <= toDate;
+    });
+  }
+
+  // Фильтр по типу (описанию)
+  if (filterType !== 'all') {
+    transactions = transactions.filter((t) =>
+      t.description.toLowerCase().includes(filterType.toLowerCase())
+    );
+  }
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setTransferData(prev => ({ ...prev, [name]: value }));
+    setTransferData((prev) => ({ ...prev, [name]: value }));
+    setModalError('');
   };
 
   const handleTransferSubmit = (e) => {
     e.preventDefault();
-    if (!transferData.senderAccount || !transferData.receiverAccount || !transferData.amount) {
-      setError('Заполните все обязательные поля');
-      return;
-    }
-    if (parseFloat(transferData.amount) <= 0) {
-      setError('Сумма должна быть больше 0');
+    setModalError('');
+    setModalSuccess('');
+
+    const senderId = parseInt(transferData.senderAccount);
+    const receiverId = parseInt(transferData.receiverAccount);
+    const amount = parseFloat(transferData.amount);
+
+    if (!senderId || !receiverId || !amount || amount <= 0) {
+      setModalError('Заполните все обязательные поля корректно');
       return;
     }
 
-    // Мок: добавляем новую транзакцию
+    const senderAccount = mockAccounts.find((acc) => acc.id_account === senderId);
+    const receiverAccount = mockAccounts.find((acc) => acc.id_account === receiverId);
+
+    if (!senderAccount || !receiverAccount) {
+      setModalError('Не найден один из счетов');
+      return;
+    }
+
+    if (senderAccount.balance < amount) {
+      setModalError('Недостаточно средств на счёте отправителя');
+      return;
+    }
+
+    senderAccount.balance -= amount;
+    receiverAccount.balance += amount;
+
     const newTransaction = {
       id_transaction: mockTransactions.length + 1,
-      sender_account_id: parseInt(transferData.senderAccount),
-      receiver_account_id: parseInt(transferData.receiverAccount),
-      amount: parseFloat(transferData.amount),
+      sender_account_id: senderId,
+      receiver_account_id: receiverId,
+      amount: amount,
       description: transferData.description || 'Перевод между счетами',
       created_at: new Date().toISOString(),
-      status_code: 'completed'
+      status_code: 'completed',
     };
 
     mockTransactions.push(newTransaction);
-    setSuccess('Перевод успешно выполнен!');
-    setError('');
-    setTransferData({ senderAccount: '', receiverAccount: '', amount: '', description: '' });
-    setShowTransferModal(false);
+    saveData();
+
+    setModalSuccess('Перевод успешно выполнен!');
+    setTimeout(() => {
+      setShowTransferModal(false);
+      setTransferData({ senderAccount: '', receiverAccount: '', amount: '', description: '' });
+      setModalSuccess('');
+    }, 2000);
   };
 
   return (
@@ -76,55 +141,93 @@ const TransactionList = () => {
         )}
       </div>
 
-      {success && <Alert variant="success" dismissible onClose={() => setSuccess('')}>{success}</Alert>}
-      {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
+      {/* Фильтры */}
+      <Row className="mb-4 g-3">
+        <Col md={3}>
+          <Form.Group>
+            <Form.Label>Дата от</Form.Label>
+            <Form.Control
+              type="date"
+              value={filterDateFrom}
+              onChange={(e) => setFilterDateFrom(e.target.value)}
+            />
+          </Form.Group>
+        </Col>
+        <Col md={3}>
+          <Form.Group>
+            <Form.Label>Дата до</Form.Label>
+            <Form.Control
+              type="date"
+              value={filterDateTo}
+              onChange={(e) => setFilterDateTo(e.target.value)}
+            />
+          </Form.Group>
+        </Col>
+        <Col md={3}>
+          <Form.Group>
+            <Form.Label>Тип операции</Form.Label>
+            <Form.Select value={filterType} onChange={(e) => setFilterType(e.target.value)}>
+              <option value="all">Все</option>
+              <option value="перевод">Перевод</option>
+              <option value="пополнение">Пополнение</option>
+              <option value="снятие">Снятие</option>
+              <option value="депозит">Депозит</option>
+            </Form.Select>
+          </Form.Group>
+        </Col>
+        <Col md={3} className="d-flex align-items-end">
+          <Button
+            variant="outline-secondary"
+            onClick={() => {
+              setFilterDateFrom('');
+              setFilterDateTo('');
+              setFilterType('all');
+            }}
+          >
+            Сбросить фильтры
+          </Button>
+        </Col>
+      </Row>
 
       <Table striped bordered hover responsive>
         <thead className="table-dark">
           <tr>
-            <th>№</th>
-            <th>Дата и время</th>
+            <th>ID</th>
             <th>Счёт отправителя</th>
             <th>Счёт получателя</th>
             <th>Сумма</th>
             <th>Описание</th>
+            <th>Дата и время</th>
             <th>Статус</th>
           </tr>
         </thead>
         <tbody>
-          {filteredTransactions.length === 0 ? (
-            <tr>
-              <td colSpan="7" className="text-center py-4">
-                Транзакций не найдено
+          {transactions.map((t) => (
+            <tr key={t.id_transaction}>
+              <td>{t.id_transaction}</td>
+              <td>{t.sender_account_id || '—'}</td>
+              <td>{t.receiver_account_id || '—'}</td>
+              <td>{t.amount.toLocaleString('ru-RU')} ₽</td>
+              <td>{t.description}</td>
+              <td>{new Date(t.created_at).toLocaleString('ru-RU')}</td>
+              <td>
+                <Badge bg="success">Завершено</Badge>
               </td>
             </tr>
-          ) : (
-            filteredTransactions.map((t, index) => (
-              <tr key={t.id_transaction}>
-                <td>{index + 1}</td>
-                <td>{new Date(t.created_at).toLocaleString('ru-RU')}</td>
-                <td>{t.sender_account_id || '-'}</td>
-                <td>{t.receiver_account_id || '-'}</td>
-                <td className="text-end fw-bold">
-                  {t.amount > 0 ? '+' : ''}{t.amount.toLocaleString('ru-RU')} ₽
-                </td>
-                <td>{t.description}</td>
-                <td>
-                  <span className="badge bg-success">Завершена</span>
-                </td>
-              </tr>
-            ))
-          )}
+          ))}
         </tbody>
       </Table>
 
-      {/* Модальное окно для перевода — только для клиента */}
-      <Modal show={showTransferModal} onHide={() => setShowTransferModal(false)} size="lg">
-        <Modal.Header closeButton>
+      {/* Модальное окно перевода — оставляем как было */}
+      <Modal show={showTransferModal} onHide={() => setShowTransferModal(false)} centered>
+        <Modal.Header closeButton className="bg-success text-white">
           <Modal.Title>Новый перевод средств</Modal.Title>
         </Modal.Header>
         <Form onSubmit={handleTransferSubmit}>
           <Modal.Body>
+            {modalError && <Alert variant="danger">{modalError}</Alert>}
+            {modalSuccess && <Alert variant="success">{modalSuccess}</Alert>}
+
             <Form.Group className="mb-3">
               <Form.Label>Счёт отправителя</Form.Label>
               <Form.Select
@@ -135,10 +238,10 @@ const TransactionList = () => {
               >
                 <option value="">Выберите счёт</option>
                 {mockAccounts
-                  .filter(acc => acc.id_client === 1) // Только счета текущего клиента
-                  .map(acc => (
+                  .filter((acc) => acc.id_client === clientId)
+                  .map((acc) => (
                     <option key={acc.id_account} value={acc.id_account}>
-                      {acc.account_number} (баланс: {acc.balance} ₽)
+                      {acc.account_number} (баланс: {acc.balance.toLocaleString('ru-RU')} ₽)
                     </option>
                   ))}
               </Form.Select>
@@ -153,7 +256,7 @@ const TransactionList = () => {
                 required
               >
                 <option value="">Выберите счёт</option>
-                {mockAccounts.map(acc => (
+                {mockAccounts.map((acc) => (
                   <option key={acc.id_account} value={acc.id_account}>
                     {acc.account_number} (владелец ID: {acc.id_client})
                   </option>
@@ -183,7 +286,7 @@ const TransactionList = () => {
                 name="description"
                 value={transferData.description}
                 onChange={handleInputChange}
-                placeholder="Например: Оплата услуг"
+                placeholder="Например: оплата услуг"
               />
             </Form.Group>
           </Modal.Body>

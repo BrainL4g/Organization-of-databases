@@ -3,107 +3,154 @@ import React, { useState } from 'react';
 import { Form, Button, Card, Alert, Container, Row, Col } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { mockUsers, mockClients, saveData } from '../data/mockData';
+import CryptoJS from 'crypto-js';
 
 const RegisterPage = () => {
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [login, setLogin] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [formData, setFormData] = useState({
+    fullName: '',
+    birthDate: '',
+    address: '',
+    phone: '',
+    passport: '',
+    email: '',
+    login: '',
+    password: '',
+    confirmPassword: ''
+  });
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!fullName || !email || !login || !password || !confirmPassword) {
-      setError('Заполните все поля');
-      return;
+    setError('');
+    setSuccess('');
+
+    const required = ['fullName', 'birthDate', 'address', 'phone', 'passport', 'email', 'login', 'password', 'confirmPassword'];
+    for (let field of required) {
+      if (!formData[field]) {
+        setError('Заполните все поля');
+        return;
+      }
     }
-    if (password !== confirmPassword) {
+
+    if (formData.password !== formData.confirmPassword) {
       setError('Пароли не совпадают');
       return;
     }
-    if (mockUsers.some(u => u.login === login || u.email === email)) {
+
+    if (mockUsers.some(u => u.login === formData.login || u.email === formData.email)) {
       setError('Логин или email уже занят');
       return;
     }
 
-    // Добавляем в mockUsers для логина
+    const newUserId = mockUsers.length + 1;
+    const newClientId = mockClients.length + 1;
+
+    // Добавляем в mockUsers
     const newUser = {
-      id: mockUsers.length + 1,
-      login,
-      password,
-      full_name: fullName,
+      id: newUserId,
+      login: formData.login,
+      password: CryptoJS.SHA256(formData.password).toString(), // хэшируем, как в AuthContext
+      full_name: formData.fullName,
       role: 'client',
-      email
+      email: formData.email
     };
     mockUsers.push(newUser);
 
-    // Добавляем в mockClients для справочника сотрудника
+    // Расширенные данные клиента в mockClients
     const newClient = {
-      id_client: mockClients.length + 1,
-      login,
-      full_name: fullName,
-      email,
+      id_client: newClientId,
+      login: formData.login,
+      full_name: formData.fullName,
+      email: formData.email,
+      birth_date: formData.birthDate,
+      address: formData.address,
+      phone: formData.phone,
+      passport: formData.passport,
       created_at: new Date().toISOString().split('T')[0]
     };
     mockClients.push(newClient);
 
-    saveData(); // Сохраняем оба массива
-
+    saveData();
     setSuccess('Регистрация успешна! Теперь войдите в систему.');
-    setError('');
     setTimeout(() => navigate('/login'), 2000);
   };
 
   return (
-    <div
-      className="min-vh-100 d-flex align-items-center justify-content-center"
-      style={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        padding: '2rem 0'
-      }}
-    >
+    <div className="min-vh-100 d-flex align-items-center justify-content-center" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
       <Container>
         <Row className="justify-content-center">
-          <Col lg={7} md={9}>
-            <Card className="shadow-2xl border-0 overflow-hidden">
-              <div
-                className="p-4 text-white text-center"
-                style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
-              >
-                <h2 className="fw-bold mb-0">Регистрация нового клиента</h2>
+          <Col lg={10}>
+            <Card className="shadow-2xl border-0">
+              <div className="p-4 text-white text-center" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+                <h2 className="fw-bold">Регистрация нового клиента</h2>
               </div>
-
               <Card.Body className="p-5">
                 {error && <Alert variant="danger">{error}</Alert>}
                 {success && <Alert variant="success">{success}</Alert>}
 
                 <Form onSubmit={handleSubmit}>
+                  <Row>
+                    <Col md={6}>
+                      <Form.Group className="mb-3">
+                        <Form.Label>ФИО</Form.Label>
+                        <Form.Control name="fullName" value={formData.fullName} onChange={handleChange} required />
+                      </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                      <Form.Group className="mb-3">
+                        <Form.Label>Дата рождения</Form.Label>
+                        <Form.Control type="date" name="birthDate" value={formData.birthDate} onChange={handleChange} required />
+                      </Form.Group>
+                    </Col>
+                  </Row>
+
                   <Form.Group className="mb-3">
-                    <Form.Label>ФИО</Form.Label>
-                    <Form.Control value={fullName} onChange={(e) => setFullName(e.target.value)} required size="lg" />
+                    <Form.Label>Адрес проживания</Form.Label>
+                    <Form.Control name="address" value={formData.address} onChange={handleChange} required />
                   </Form.Group>
+
+                  <Row>
+                    <Col md={6}>
+                      <Form.Group className="mb-3">
+                        <Form.Label>Телефон</Form.Label>
+                        <Form.Control name="phone" value={formData.phone} onChange={handleChange} placeholder="+7 (999) 999-99-99" required />
+                      </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                      <Form.Group className="mb-3">
+                        <Form.Label>Паспорт (серия и номер)</Form.Label>
+                        <Form.Control name="passport" value={formData.passport} onChange={handleChange} placeholder="0000 000000" required />
+                      </Form.Group>
+                    </Col>
+                  </Row>
+
                   <Form.Group className="mb-3">
                     <Form.Label>Email</Form.Label>
-                    <Form.Control type="email" value={email} onChange={(e) => setEmail(e.target.value)} required size="lg" />
+                    <Form.Control type="email" name="email" value={formData.email} onChange={handleChange} required />
                   </Form.Group>
+
                   <Form.Group className="mb-3">
                     <Form.Label>Логин</Form.Label>
-                    <Form.Control value={login} onChange={(e) => setLogin(e.target.value)} required size="lg" />
+                    <Form.Control name="login" value={formData.login} onChange={handleChange} required />
                   </Form.Group>
+
                   <Row>
                     <Col md={6}>
                       <Form.Group className="mb-3">
                         <Form.Label>Пароль</Form.Label>
-                        <Form.Control type="password" value={password} onChange={(e) => setPassword(e.target.value)} required size="lg" />
+                        <Form.Control type="password" name="password" value={formData.password} onChange={handleChange} required />
                       </Form.Group>
                     </Col>
                     <Col md={6}>
                       <Form.Group className="mb-3">
                         <Form.Label>Подтвердите пароль</Form.Label>
-                        <Form.Control type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required size="lg" />
+                        <Form.Control type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} required />
                       </Form.Group>
                     </Col>
                   </Row>

@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Layout from './components/Layout';
 import PrivateRoute from './components/PrivateRoute';
+import SettingsPage from './pages/Settings/SettingsPage';
 
 import Home from './pages/Home';
 import LoginPage from './pages/LoginPage';
@@ -59,7 +60,7 @@ function App() {
           <Routes>
             {/* Главная страница — только для гостей */}
             <Route path="/" element={<HomeWrapper />} />
-
+            <Route path="/settings" element={<SettingsPage />} />
             {/* Публичные страницы */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />

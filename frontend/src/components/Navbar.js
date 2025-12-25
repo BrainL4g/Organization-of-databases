@@ -52,7 +52,7 @@ const CustomNavbar = () => {
           <Nav>
             <Navbar.Text className="text-light me-4">
               {currentUser.full_name}
-              <small className="text-muted ms-2">
+              <small className="text-light ms-2">
                 ({currentUser.role === 'client' ? 'Клиент' : currentUser.role === 'employee' ? 'Сотрудник' : 'Администратор'})
               </small>
             </Navbar.Text>

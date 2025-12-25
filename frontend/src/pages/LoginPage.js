@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { Form, Button, Card, Alert, Container, Row, Col } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { mockUsers, saveData } from '../data/mockData';
+import CryptoJS from 'crypto-js'; // Для хэширования нового пароля при сбросе
 
 const LoginPage = () => {
   const [login, setLogin] = useState('');
@@ -13,11 +15,31 @@ const LoginPage = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setError('');
+
     if (authLogin(login, password)) {
       navigate('/dashboard');
     } else {
       setError('Неверный логин или пароль');
     }
+  };
+
+  const handleForgotPassword = () => {
+    const userLogin = prompt('Введите ваш логин для восстановления пароля:');
+    if (!userLogin) return;
+
+    const user = mockUsers.find(u => u.login === userLogin);
+    if (!user) {
+      alert('Пользователь с таким логином не найден.');
+      return;
+    }
+
+    // Мок-сброс: устанавливаем простой пароль "123"
+    const newPassword = '1234';
+    user.password = CryptoJS.SHA256(newPassword).toString();
+    saveData();
+
+    alert(`Пароль успешно сброшен!\nНовый пароль: ${newPassword}\nТеперь вы можете войти.`);
   };
 
   return (
@@ -68,17 +90,25 @@ const LoginPage = () => {
                     />
                   </Form.Group>
 
-                  <Button variant="primary" type="submit" size="lg" className="w-100 py-3 shadow">
+                  <Button variant="primary" type="submit" size="lg" className="w-100 py-3 shadow mb-3">
                     Войти
                   </Button>
                 </Form>
 
+                {/* Кнопка восстановления пароля */}
+                <div className="text-center">
+                  <Button variant="link" className="text-muted" onClick={handleForgotPassword}>
+                    Забыли пароль?
+                  </Button>
+                </div>
+
                 <Alert variant="light" className="mt-4 text-center border">
                   <strong>Для демонстрации:</strong><br />
                   <small>
-                    • Клиент: <code>client1 / 123</code><br />
-                    • Сотрудник: <code>emp1 / 123</code><br />
-                    • Администратор: <code>admin / admin</code>
+                    • Клиент: <code>client1</code> / <code>123</code><br />
+                    • Клиент: <code>client2</code> / <code>123</code><br />
+                    • Сотрудник: <code>emp1</code> / <code>123</code><br />
+                    • Администратор: <code>admin</code> / <code>admin</code>
                   </small>
                 </Alert>
               </Card.Body>

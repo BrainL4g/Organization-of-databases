@@ -1,35 +1,48 @@
 // src/pages/Dashboard/ClientDashboard.js
 import React, { useState } from 'react';
-import { Card, Table, Button, Modal, Form, Alert, Row, Col, Tabs, Tab } from 'react-bootstrap';
-import { mockAccounts, mockTransactions, mockCreditApplications, mockCredits, saveData } from '../../data/mockData';
+import { Card, Table, Button, Modal, Form, Alert, Row, Col, Tabs, Tab, Badge } from 'react-bootstrap';
+import {
+  mockAccounts,
+  mockTransactions,
+  mockCreditApplications,
+  mockCredits,
+  mockCards,
+  mockDeposits,
+  saveData
+} from '../../data/mockData';
 import { useAuth } from '../../context/AuthContext';
 
 const ClientDashboard = () => {
   const { currentUser } = useAuth();
 
-  const clientId = 1; // Для демонстрации — client1
+  const clientId = 1; // Для демонстрации — client1 (в будущем можно брать из currentUser)
+
   const clientAccounts = mockAccounts.filter(acc => acc.id_client === clientId);
-
-  const clientTransactions = mockTransactions.filter(t =>
-    clientAccounts.some(acc => acc.id_account === t.sender_account_id || acc.id_account === t.receiver_account_id)
-  );
-
+  const clientCards = mockCards.filter(card => card.id_client === clientId);
+  const clientDeposits = mockDeposits.filter(dep => dep.client_id === clientId);
   const clientCredits = mockCredits.filter(c => c.client_id === clientId);
 
+
+  // Состояния модалок
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [showApplyModal, setShowApplyModal] = useState(false);
-  const [applyType, setApplyType] = useState('');
+  const [showDepositModal, setShowDepositModal] = useState(false);
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
 
+  const [applyType, setApplyType] = useState('');
   const [application, setApplication] = useState({ amount: '', term_months: '' });
   const [transfer, setTransfer] = useState({ sender: '', receiver: '', amount: '', description: '' });
+  const [operationData, setOperationData] = useState({ account: '', amount: '' });
 
   const [message, setMessage] = useState({ text: '', variant: '' });
+  const [transferError, setTransferError] = useState('');
 
   const showMessage = (text, variant = 'success') => {
     setMessage({ text, variant });
     setTimeout(() => setMessage({ text: '', variant: '' }), 6000);
   };
 
+  // Заявка на продукт
   const handleApplicationChange = (e) => {
     setApplication({ ...application, [e.target.name]: e.target.value });
   };
@@ -53,132 +66,234 @@ const ClientDashboard = () => {
     };
 
     mockCreditApplications.push(newApplication);
-    saveData(); // Сохраняем
+    saveData();
 
     showMessage(`Заявка на ${applyType} на сумму ${parseFloat(application.amount).toLocaleString('ru-RU')} ₽ успешно отправлена`);
     setApplication({ amount: '', term_months: '' });
     setShowApplyModal(false);
   };
 
+  // Перевод между счетами
   const handleTransferChange = (e) => {
     setTransfer({ ...transfer, [e.target.name]: e.target.value });
+    setTransferError('');
   };
 
   const handleTransferSubmit = (e) => {
     e.preventDefault();
+    setTransferError('');
 
     const senderId = parseInt(transfer.sender);
     const receiverId = parseInt(transfer.receiver);
     const amount = parseFloat(transfer.amount);
 
-    if (isNaN(senderId) || isNaN(receiverId) || isNaN(amount) || amount <= 0) {
-      showMessage('Проверьте правильность заполнения полей', 'danger');
+    if (!senderId || !receiverId || !amount || amount <= 0) {
+      setTransferError('Заполните все поля корректно');
       return;
     }
 
-    const senderAccount = mockAccounts.find(acc => acc.id_account === senderId);
-    const receiverAccount = mockAccounts.find(acc => acc.id_account === receiverId);
+    const senderAcc = mockAccounts.find(acc => acc.id_account === senderId);
+    const receiverAcc = mockAccounts.find(acc => acc.id_account === receiverId);
 
-    if (!senderAccount || !receiverAccount) {
-      showMessage('Один из счетов не найден', 'danger');
+    if (!senderAcc || !receiverAcc) {
+      setTransferError('Один из счетов не найден');
       return;
     }
 
-    if (senderAccount.balance < amount) {
-      showMessage('Недостаточно средств на счёте отправителя', 'danger');
+    if (senderAcc.balance < amount) {
+      setTransferError('Недостаточно средств на счёте отправителя');
       return;
     }
 
-    // Реальный перевод: меняем балансы
-    senderAccount.balance -= amount;
-    receiverAccount.balance += amount;
+    senderAcc.balance -= amount;
+    receiverAcc.balance += amount;
 
-    // Добавляем транзакцию
-    const newTransaction = {
+    mockTransactions.push({
       id_transaction: mockTransactions.length + 1,
       sender_account_id: senderId,
       receiver_account_id: receiverId,
-      amount: amount,
+      amount,
       description: transfer.description || 'Перевод между счетами',
       created_at: new Date().toISOString(),
       status_code: 'completed'
-    };
+    });
 
-    mockTransactions.push(newTransaction);
-
-    // КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: сохраняем все данные в localStorage
     saveData();
-
-    showMessage(`Перевод ${amount.toLocaleString('ru-RU')} ₽ успешно выполнен. Баланс обновлён.`);
-    setTransfer({ sender: '', receiver: '', amount: '', description: '' });
+    showMessage('Перевод успешно выполнен');
     setShowTransferModal(false);
+    setTransfer({ sender: '', receiver: '', amount: '', description: '' });
   };
 
-  const openApplyModal = (type) => {
-    setApplyType(type);
-    setShowApplyModal(true);
+  // Пополнение и снятие
+  const handleOperationChange = (e) => {
+    setOperationData({ ...operationData, [e.target.name]: e.target.value });
+  };
+
+  const handleDeposit = (e) => {
+    e.preventDefault();
+    const acc = mockAccounts.find(a => a.id_account === parseInt(operationData.account));
+    const amount = parseFloat(operationData.amount);
+
+    if (!acc || amount <= 0) {
+      showMessage('Проверьте данные', 'danger');
+      return;
+    }
+
+    acc.balance += amount;
+
+    mockTransactions.push({
+      id_transaction: mockTransactions.length + 1,
+      sender_account_id: null,
+      receiver_account_id: acc.id_account,
+      amount,
+      description: 'Пополнение счёта',
+      created_at: new Date().toISOString(),
+      status_code: 'completed'
+    });
+
+    saveData();
+    showMessage(`Счёт пополнен на ${amount.toLocaleString('ru-RU')} ₽`);
+    setShowDepositModal(false);
+    setOperationData({ account: '', amount: '' });
+  };
+
+  const handleWithdraw = (e) => {
+    e.preventDefault();
+    const acc = mockAccounts.find(a => a.id_account === parseInt(operationData.account));
+    const amount = parseFloat(operationData.amount);
+
+    if (!acc || amount <= 0) {
+      showMessage('Проверьте данные', 'danger');
+      return;
+    }
+    if (acc.balance < amount) {
+      showMessage('Недостаточно средств', 'danger');
+      return;
+    }
+
+    acc.balance -= amount;
+
+    mockTransactions.push({
+      id_transaction: mockTransactions.length + 1,
+      sender_account_id: acc.id_account,
+      receiver_account_id: null,
+      amount,
+      description: 'Снятие средств',
+      created_at: new Date().toISOString(),
+      status_code: 'completed'
+    });
+
+    saveData();
+    showMessage(`Снято ${amount.toLocaleString('ru-RU')} ₽ со счёта`);
+    setShowWithdrawModal(false);
+    setOperationData({ account: '', amount: '' });
+  };
+
+  // Расчёт процентов по депозиту (простой годовой)
+  const calculateInterest = (dep) => {
+    const yearsPassed = (Date.now() - new Date(dep.approved_at)) / (365 * 24 * 60 * 60 * 1000);
+    return (dep.amount * (dep.interest_rate / 100) * yearsPassed).toFixed(2);
   };
 
   return (
     <div>
-      <h2 className="mb-5 text-center text-primary fw-bold">
-        Личный кабинет клиента: {currentUser?.full_name || 'Клиент'}
-      </h2>
+      <h2 className="mb-5 text-center text-primary fw-bold">Мой кабинет</h2>
 
-      {message.text && (
-        <Alert variant={message.variant} dismissible onClose={() => setMessage({ text: '', variant: '' })}>
-          {message.text}
-        </Alert>
-      )}
+      {message.text && <Alert variant={message.variant} dismissible>{message.text}</Alert>}
 
-      <Tabs defaultActiveKey="accounts" id="client-tabs" className="mb-5" justify>
-        <Tab eventKey="accounts" title="Мои счета">
-          <Row className="g-4">
-            {clientAccounts.length === 0 ? (
-              <Col>
-                <Alert variant="info" className="text-center">
-                  У вас пока нет открытых счетов. Обратитесь к сотруднику банка.
-                </Alert>
+      <Tabs defaultActiveKey="accounts" className="mb-4">
+        <Tab eventKey="accounts" title="Счета">
+          <Row>
+            {clientAccounts.map(acc => (
+              <Col md={6} lg={4} key={acc.id_account} className="mb-4">
+                <Card className="h-100 shadow-sm">
+                  <Card.Body>
+                    <Card.Title>Счёт {acc.account_number}</Card.Title>
+                    <Card.Text>
+                      <strong>Баланс:</strong> {acc.balance.toLocaleString('ru-RU')} {acc.currency_code}<br />
+                      <strong>Статус:</strong> {acc.is_blocked ? 'Заблокирован' : 'Активен'}
+                    </Card.Text>
+                  </Card.Body>
+                </Card>
               </Col>
-            ) : (
-              clientAccounts.map(acc => (
-                <Col md={6} lg={4} key={acc.id_account}>
-                  <Card className="h-100 shadow border-0 rounded-3">
-                    <Card.Header className="bg-primary text-white text-center">
-                      <h5 className="mb-0">Счёт № {acc.account_number}</h5>
-                    </Card.Header>
-                    <Card.Body className="text-center">
-                      <h3 className="text-success fw-bold">
-                        {acc.balance.toLocaleString('ru-RU')} {acc.currency_code}
-                      </h3>
-                      <p className="mb-2">
-                        <strong>Валюта:</strong> {acc.currency_code}
-                      </p>
-                      <p className={acc.is_blocked ? 'text-danger fw-bold' : 'text-success fw-bold'}>
-                        Статус: {acc.is_blocked ? 'Заблокирован' : 'Активен'}
-                      </p>
-                      <Button variant="primary" className="w-100 mt-3" onClick={() => setShowTransferModal(true)}>
-                        Перевести средства
-                      </Button>
+            ))}
+          </Row>
+
+          <div className="text-center mt-4">
+            <Button variant="success" className="me-3" onClick={() => setShowDepositModal(true)}>
+              Пополнить счёт
+            </Button>
+            <Button variant="warning" className="me-3" onClick={() => setShowWithdrawModal(true)}>
+              Снять средства
+            </Button>
+            <Button variant="primary" onClick={() => setShowTransferModal(true)}>
+              Перевод между счетами
+            </Button>
+          </div>
+        </Tab>
+
+        <Tab eventKey="cards" title="Карты">
+          {clientCards.length === 0 ? (
+            <Alert variant="info">У вас нет выпущенных карт. Подайте заявку в разделе "Продукты".</Alert>
+          ) : (
+            <Row>
+              {clientCards.map(card => (
+                <Col md={6} lg={4} key={card.id_card} className="mb-4">
+                  <Card className="h-100 shadow-sm">
+                    <Card.Body>
+                      <Card.Title>{card.card_type}</Card.Title>
+                      <Card.Text>
+                        <strong>Номер:</strong> {card.card_number}<br />
+                        <strong>Действует до:</strong> {card.expiry_date}<br />
+                        <strong>Статус:</strong> <Badge bg={card.status === 'active' ? 'success' : 'danger'}>{card.status === 'active' ? 'Активна' : 'Неактивна'}</Badge>
+                      </Card.Text>
                     </Card.Body>
                   </Card>
                 </Col>
-              ))
-            )}
-          </Row>
+              ))}
+            </Row>
+          )}
         </Tab>
 
-        <Tab eventKey="credits" title="Кредиты и заявки">
-          <h4 className="mb-4">Одобренные кредиты</h4>
-          {clientCredits.length === 0 ? (
-            <Alert variant="info">У вас нет активных кредитов</Alert>
+        <Tab eventKey="deposits" title="Депозиты">
+          {clientDeposits.length === 0 ? (
+            <Alert variant="info">Нет активных депозитов</Alert>
           ) : (
             <Table striped bordered hover responsive>
               <thead className="table-primary">
                 <tr>
                   <th>Сумма</th>
-                  <th>Срок</th>
-                  <th>Дата одобрения</th>
+                  <th>Ставка (%)</th>
+                  <th>Срок (мес.)</th>
+                  <th>Начислено процентов</th>
+                  <th>Дата открытия</th>
+                </tr>
+              </thead>
+              <tbody>
+                {clientDeposits.map(dep => (
+                  <tr key={dep.id}>
+                    <td>{dep.amount.toLocaleString('ru-RU')} ₽</td>
+                    <td>{dep.interest_rate}%</td>
+                    <td>{dep.term_months}</td>
+                    <td>{calculateInterest(dep)} ₽</td>
+                    <td>{new Date(dep.approved_at).toLocaleDateString('ru-RU')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          )}
+        </Tab>
+
+        <Tab eventKey="credits" title="Кредиты">
+          {clientCredits.length === 0 ? (
+            <Alert variant="info">Нет активных кредитов</Alert>
+          ) : (
+            <Table striped bordered hover responsive>
+              <thead className="table-primary">
+                <tr>
+                  <th>Сумма</th>
+                  <th>Срок (мес.)</th>
+                  <th>Дата выдачи</th>
                   <th>Статус</th>
                 </tr>
               </thead>
@@ -186,92 +301,59 @@ const ClientDashboard = () => {
                 {clientCredits.map(c => (
                   <tr key={c.id}>
                     <td>{c.amount.toLocaleString('ru-RU')} ₽</td>
-                    <td>{c.term_months} месяцев</td>
+                    <td>{c.term_months}</td>
                     <td>{new Date(c.approved_at).toLocaleDateString('ru-RU')}</td>
-                    <td><span className="badge bg-success">Активен</span></td>
+                    <td><Badge bg="success">Активен</Badge></td>
                   </tr>
                 ))}
               </tbody>
             </Table>
           )}
-
-          <h4 className="mt-5 mb-4 text-center">Подать новую заявку на продукт</h4>
-          <Row className="g-4 justify-content-center">
-            <Col md={4}>
-              <Button variant="outline-success" size="lg" className="w-100 py-4" onClick={() => openApplyModal('кредит')}>
-                <strong>Кредит</strong>
-              </Button>
-            </Col>
-            <Col md={4}>
-              <Button variant="outline-success" size="lg" className="w-100 py-4" onClick={() => openApplyModal('депозит')}>
-                <strong>Депозит</strong>
-              </Button>
-            </Col>
-            <Col md={4}>
-              <Button variant="outline-success" size="lg" className="w-100 py-4" onClick={() => openApplyModal('карту')}>
-                <strong>Карта</strong>
-              </Button>
-            </Col>
-          </Row>
         </Tab>
 
-        <Tab eventKey="transactions" title="История операций">
-          <h4 className="mb-4">Все операции по счетам</h4>
-          {clientTransactions.length === 0 ? (
-            <Alert variant="info">Операций пока не проводилось</Alert>
-          ) : (
-            <Table striped bordered hover responsive>
-              <thead className="table-primary">
-                <tr>
-                  <th>Дата и время</th>
-                  <th>Сумма</th>
-                  <th>Описание</th>
-                  <th>Статус</th>
-                </tr>
-              </thead>
-              <tbody>
-                {clientTransactions.map(t => (
-                  <tr key={t.id_transaction}>
-                    <td>{new Date(t.created_at).toLocaleString('ru-RU')}</td>
-                    <td className={t.amount > 0 ? 'text-success fw-bold' : 'text-danger fw-bold'}>
-                      {t.amount > 0 ? '+' : ''}{t.amount.toLocaleString('ru-RU')} ₽
-                    </td>
-                    <td>{t.description}</td>
-                    <td><span className="badge bg-success">Завершена</span></td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          )}
+        <Tab eventKey="products" title="Продукты">
+          <div className="text-center py-5">
+            <h4>Подать заявку на банковский продукт</h4>
+            <Button variant="primary" size="lg" className="me-3" onClick={() => { setApplyType('кредит'); setShowApplyModal(true); }}>
+              Заявка на кредит
+            </Button>
+            <Button variant="primary" size="lg" className="me-3" onClick={() => { setApplyType('депозит'); setShowApplyModal(true); }}>
+              Заявка на депозит
+            </Button>
+            <Button variant="primary" size="lg" onClick={() => { setApplyType('карта'); setShowApplyModal(true); }}>
+              Заявка на карту
+            </Button>
+          </div>
         </Tab>
       </Tabs>
 
       {/* Модалка перевода */}
-      <Modal show={showTransferModal} onHide={() => setShowTransferModal(false)} size="lg" centered>
+      <Modal show={showTransferModal} onHide={() => setShowTransferModal(false)} centered>
         <Modal.Header closeButton className="bg-primary text-white">
-          <Modal.Title>Перевод средств</Modal.Title>
+          <Modal.Title>Перевод между счетами</Modal.Title>
         </Modal.Header>
         <Form onSubmit={handleTransferSubmit}>
           <Modal.Body>
+            {transferError && <Alert variant="danger">{transferError}</Alert>}
             <Form.Group className="mb-3">
-              <Form.Label>Со счёта (отправитель)</Form.Label>
+              <Form.Label>Счёт отправителя</Form.Label>
               <Form.Select name="sender" value={transfer.sender} onChange={handleTransferChange} required>
-                <option value="">Выберите свой счёт</option>
+                <option value="">Выберите счёт</option>
                 {clientAccounts.map(acc => (
                   <option key={acc.id_account} value={acc.id_account}>
-                    {acc.account_number} (баланс: {acc.balance.toLocaleString('ru-RU')} ₽)
+                    {acc.account_number} ({acc.balance.toLocaleString('ru-RU')} ₽)
                   </option>
                 ))}
               </Form.Select>
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label>На счёт (получатель)</Form.Label>
+              <Form.Label>Счёт получателя</Form.Label>
               <Form.Select name="receiver" value={transfer.receiver} onChange={handleTransferChange} required>
-                <option value="">Выберите счёт получателя</option>
+                <option value="">Выберите счёт</option>
                 {mockAccounts.map(acc => (
                   <option key={acc.id_account} value={acc.id_account}>
-                    {acc.account_number} (владелец ID: {acc.id_client}, баланс: {acc.balance.toLocaleString('ru-RU')} ₽)
+                    {acc.account_number} (владелец ID: {acc.id_client})
                   </option>
                 ))}
               </Form.Select>
@@ -279,42 +361,22 @@ const ClientDashboard = () => {
 
             <Form.Group className="mb-3">
               <Form.Label>Сумма</Form.Label>
-              <Form.Control
-                type="number"
-                name="amount"
-                value={transfer.amount}
-                onChange={handleTransferChange}
-                min="0.01"
-                step="0.01"
-                placeholder="0.00"
-                required
-              />
+              <Form.Control type="number" name="amount" value={transfer.amount} onChange={handleTransferChange} min="0.01" step="0.01" required />
             </Form.Group>
 
             <Form.Group className="mb-3">
               <Form.Label>Описание (необязательно)</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={2}
-                name="description"
-                value={transfer.description}
-                onChange={handleTransferChange}
-                placeholder="Например: оплата услуг"
-              />
+              <Form.Control as="textarea" rows={2} name="description" value={transfer.description} onChange={handleTransferChange} />
             </Form.Group>
           </Modal.Body>
           <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowTransferModal(false)}>
-              Отмена
-            </Button>
-            <Button variant="primary" type="submit">
-              Выполнить перевод
-            </Button>
+            <Button variant="secondary" onClick={() => setShowTransferModal(false)}>Отмена</Button>
+            <Button variant="primary" type="submit">Выполнить перевод</Button>
           </Modal.Footer>
         </Form>
       </Modal>
 
-      {/* Модалка заявки */}
+      {/* Модалка заявки на продукт */}
       <Modal show={showApplyModal} onHide={() => setShowApplyModal(false)} centered>
         <Modal.Header closeButton className="bg-success text-white">
           <Modal.Title>Заявка на {applyType}</Modal.Title>
@@ -323,38 +385,76 @@ const ClientDashboard = () => {
           <Modal.Body>
             <Form.Group className="mb-3">
               <Form.Label>Сумма (в рублях)</Form.Label>
-              <Form.Control
-                type="number"
-                name="amount"
-                value={application.amount}
-                onChange={handleApplicationChange}
-                min="1000"
-                placeholder="Например: 500000"
-                required
-              />
+              <Form.Control type="number" name="amount" value={application.amount} onChange={handleApplicationChange} min="1000" required />
             </Form.Group>
-
             <Form.Group className="mb-3">
               <Form.Label>Срок (в месяцах)</Form.Label>
-              <Form.Control
-                type="number"
-                name="term_months"
-                value={application.term_months}
-                onChange={handleApplicationChange}
-                min="1"
-                max="120"
-                placeholder="Например: 48"
-                required
-              />
+              <Form.Control type="number" name="term_months" value={application.term_months} onChange={handleApplicationChange} min="1" max="120" required />
             </Form.Group>
           </Modal.Body>
           <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowApplyModal(false)}>
-              Отмена
-            </Button>
-            <Button variant="success" type="submit">
-              Отправить заявку
-            </Button>
+            <Button variant="secondary" onClick={() => setShowApplyModal(false)}>Отмена</Button>
+            <Button variant="success" type="submit">Отправить заявку</Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
+
+      {/* Модалка пополнения */}
+      <Modal show={showDepositModal} onHide={() => setShowDepositModal(false)} centered>
+        <Modal.Header closeButton className="bg-success text-white">
+          <Modal.Title>Пополнение счёта</Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={handleDeposit}>
+          <Modal.Body>
+            <Form.Group className="mb-3">
+              <Form.Label>Счёт для пополнения</Form.Label>
+              <Form.Select name="account" value={operationData.account} onChange={handleOperationChange} required>
+                <option value="">Выберите счёт</option>
+                {clientAccounts.map(acc => (
+                  <option key={acc.id_account} value={acc.id_account}>
+                    {acc.account_number} ({acc.balance.toLocaleString('ru-RU')} ₽)
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+            <Form.Group>
+              <Form.Label>Сумма пополнения</Form.Label>
+              <Form.Control type="number" name="amount" value={operationData.amount} onChange={handleOperationChange} min="1" required />
+            </Form.Group>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowDepositModal(false)}>Отмена</Button>
+            <Button variant="success" type="submit">Пополнить</Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
+
+      {/* Модалка снятия */}
+      <Modal show={showWithdrawModal} onHide={() => setShowWithdrawModal(false)} centered>
+        <Modal.Header closeButton className="bg-warning text-white">
+          <Modal.Title>Снятие средств</Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={handleWithdraw}>
+          <Modal.Body>
+            <Form.Group className="mb-3">
+              <Form.Label>Счёт для снятия</Form.Label>
+              <Form.Select name="account" value={operationData.account} onChange={handleOperationChange} required>
+                <option value="">Выберите счёт</option>
+                {clientAccounts.map(acc => (
+                  <option key={acc.id_account} value={acc.id_account}>
+                    {acc.account_number} ({acc.balance.toLocaleString('ru-RU')} ₽)
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+            <Form.Group>
+              <Form.Label>Сумма снятия</Form.Label>
+              <Form.Control type="number" name="amount" value={operationData.amount} onChange={handleOperationChange} min="1" required />
+            </Form.Group>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowWithdrawModal(false)}>Отмена</Button>
+            <Button variant="warning" type="submit">Снять</Button>
           </Modal.Footer>
         </Form>
       </Modal>
