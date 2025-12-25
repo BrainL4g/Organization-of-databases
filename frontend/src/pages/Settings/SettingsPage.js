@@ -27,12 +27,6 @@ const SettingsPage = () => {
         Перезагрузить базу данных
       </Button>
 
-      <p className="mt-5 text-muted">
-        <small>
-          Внимание: все изменения будут потеряны.<br />
-          Доступно по прямой ссылке: <code>/settings</code>
-        </small>
-      </p>
     </Container>
   );
 };

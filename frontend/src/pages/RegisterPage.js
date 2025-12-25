@@ -10,7 +10,7 @@ const RegisterPage = () => {
     fullName: '',
     birthDate: '',
     address: '',
-    phone: '',
+    phone: '',  // Добавили
     passport: '',
     email: '',
     login: '',
@@ -51,69 +51,78 @@ const RegisterPage = () => {
     const newUserId = mockUsers.length + 1;
     const newClientId = mockClients.length + 1;
 
-    // Добавляем в mockUsers
+    // Новый пользователь
+    const hashedPass = CryptoJS.SHA256(formData.password).toString();
     const newUser = {
       id: newUserId,
       login: formData.login,
-      password: CryptoJS.SHA256(formData.password).toString(), // хэшируем, как в AuthContext
+      password: hashedPass,
       full_name: formData.fullName,
       role: 'client',
       email: formData.email
     };
     mockUsers.push(newUser);
 
-    // Расширенные данные клиента в mockClients
+    // Новый клиент
     const newClient = {
       id_client: newClientId,
       login: formData.login,
       full_name: formData.fullName,
       email: formData.email,
-      birth_date: formData.birthDate,
-      address: formData.address,
-      phone: formData.phone,
-      passport: formData.passport,
-      created_at: new Date().toISOString().split('T')[0]
+      phone: formData.phone,  // Добавили
+      created_at: new Date().toISOString()
     };
     mockClients.push(newClient);
 
     saveData();
-    setSuccess('Регистрация успешна! Теперь войдите в систему.');
-    setTimeout(() => navigate('/login'), 2000);
+    setSuccess('Регистрация успешна! Теперь вы можете войти.');
+    setTimeout(() => navigate('/login'), 3000);
   };
 
   return (
-    <div className="min-vh-100 d-flex align-items-center justify-content-center" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+    <div
+      className="min-vh-100 d-flex align-items-center justify-content-center"
+      style={{
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        padding: '2rem 0'
+      }}
+    >
       <Container>
         <Row className="justify-content-center">
-          <Col lg={10}>
-            <Card className="shadow-2xl border-0">
-              <div className="p-4 text-white text-center" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-                <h2 className="fw-bold">Регистрация нового клиента</h2>
+          <Col lg={8}>
+            <Card className="shadow-2xl border-0 overflow-hidden">
+              <div
+                className="p-5 text-white text-center"
+                style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
+              >
+                <h1 className="display-5 fw-bold mb-3">Регистрация клиента</h1>
+                <p className="lead opacity-90">Заполните форму для создания аккаунта</p>
               </div>
+
               <Card.Body className="p-5">
-                {error && <Alert variant="danger">{error}</Alert>}
-                {success && <Alert variant="success">{success}</Alert>}
+                {success && <Alert variant="success" className="mb-4 text-center">{success}</Alert>}
+                {error && <Alert variant="danger" className="mb-4 text-center">{error}</Alert>}
 
                 <Form onSubmit={handleSubmit}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>ФИО</Form.Label>
+                    <Form.Control name="fullName" value={formData.fullName} onChange={handleChange} required />
+                  </Form.Group>
+
                   <Row>
-                    <Col md={6}>
-                      <Form.Group className="mb-3">
-                        <Form.Label>ФИО</Form.Label>
-                        <Form.Control name="fullName" value={formData.fullName} onChange={handleChange} required />
-                      </Form.Group>
-                    </Col>
                     <Col md={6}>
                       <Form.Group className="mb-3">
                         <Form.Label>Дата рождения</Form.Label>
                         <Form.Control type="date" name="birthDate" value={formData.birthDate} onChange={handleChange} required />
                       </Form.Group>
                     </Col>
+                    <Col md={6}>
+                      <Form.Group className="mb-3">
+                        <Form.Label>Адрес</Form.Label>
+                        <Form.Control name="address" value={formData.address} onChange={handleChange} required />
+                      </Form.Group>
+                    </Col>
                   </Row>
-
-                  <Form.Group className="mb-3">
-                    <Form.Label>Адрес проживания</Form.Label>
-                    <Form.Control name="address" value={formData.address} onChange={handleChange} required />
-                  </Form.Group>
 
                   <Row>
                     <Col md={6}>
@@ -124,8 +133,8 @@ const RegisterPage = () => {
                     </Col>
                     <Col md={6}>
                       <Form.Group className="mb-3">
-                        <Form.Label>Паспорт (серия и номер)</Form.Label>
-                        <Form.Control name="passport" value={formData.passport} onChange={handleChange} placeholder="0000 000000" required />
+                        <Form.Label>Паспортные данные</Form.Label>
+                        <Form.Control name="passport" value={formData.passport} onChange={handleChange} required />
                       </Form.Group>
                     </Col>
                   </Row>

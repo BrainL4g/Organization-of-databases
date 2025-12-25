@@ -1,5 +1,5 @@
 // src/pages/Dashboard/EmployeeDashboard.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Button,
   Modal,
@@ -13,7 +13,7 @@ import {
   mockClients,
   mockCreditApplications,
   mockCredits,
-  mockCards,  // Добавили для создания карт
+  mockCards,
   mockDeposits,
   mockProducts,
   mockTransactions,
@@ -54,10 +54,32 @@ const EmployeeDashboard = () => {
     setNewAccount({ ...newAccount, [e.target.name]: e.target.value });
   };
 
+  // Автоматическая генерация номера счёта при выборе клиента и валюты
+  useEffect(() => {
+    if (newAccount.id_client && newAccount.currency_code) {
+      // Генерация номера: 40817 (расчётный счёт) + код валюты + 9 случайных цифр + контрольная цифра
+      const base = '40817';
+      const currencyCode = newAccount.currency_code === 'RUB' ? '810' : newAccount.currency_code === 'USD' ? '840' : '978';
+      const randomDigits = Math.floor(Math.random() * 1000000000).toString().padStart(9, '0');
+      const fullNumber = base + currencyCode + randomDigits;
+
+      // Простая контрольная цифра (сумма цифр mod 10)
+      let sum = 0;
+      for (let i = 0; i < fullNumber.length; i++) {
+        sum += parseInt(fullNumber[i]);
+      }
+      const checkDigit = (10 - (sum % 10)) % 10;
+
+      setNewAccount(prev => ({ ...prev, account_number: fullNumber + checkDigit }));
+    } else {
+      setNewAccount(prev => ({ ...prev, account_number: '' }));
+    }
+  }, [newAccount.id_client, newAccount.currency_code]);
+
   const handleOpenAccount = (e) => {
     e.preventDefault();
     if (!newAccount.id_client || !newAccount.account_number) {
-      showMessage('Заполните все обязательные поля', 'danger');
+      showMessage('Выберите клиента и валюту для генерации номера', 'danger');
       return;
     }
 
@@ -73,12 +95,12 @@ const EmployeeDashboard = () => {
 
     mockAccounts.push(newAcc);
     saveData();
-    showMessage(`Счёт ${newAccount.account_number} успешно открыт для клиента`);
+    showMessage(`Счёт ${newAccount.account_number} успешно открыт`);
     setNewAccount({ id_client: '', account_number: '', currency_code: 'RUB' });
     setShowOpenAccountModal(false);
   };
 
-  // Начисление процентов
+  // Начисление процентов + запись в транзакции
   const handleAccrueInterest = () => {
     let totalAccrued = 0;
 
@@ -118,14 +140,16 @@ const EmployeeDashboard = () => {
     });
 
     saveData();
-    showMessage(`Проценты начислены на сумму ${totalAccrued.toLocaleString('ru-RU')} ₽ и записаны в историю операций`);
+    showMessage(`Проценты начислены на сумму ${totalAccrued.toLocaleString('ru-RU')} ₽`);
     setShowAccrueInterestModal(false);
   };
 
   // Одобрение заявки
   const handleApproveApplication = (app) => {
     app.status = 'approved';
-    showMessage(`Заявка №${app.id} (${app.product_type}) одобрена`);
+    app.signed_by_bank = true;  // Добавили подписание договора
+
+    showMessage(`Заявка №${app.id} одобрена и подписана`);
 
     if (app.product_type === 'кредит') {
       const creditProduct = mockProducts.find(p => p.name.toLowerCase().includes('кредит'));
@@ -165,8 +189,9 @@ const EmployeeDashboard = () => {
 
       if (!clientAccount || clientAccount.balance < app.amount) {
         app.status = 'rejected';
+        app.signed_by_bank = false;
         saveData();
-        showMessage(`Заявка №${app.id} на депозит отклонена: недостаточно средств на счёте клиента`, 'danger');
+        showMessage(`Заявка отклонена: недостаточно средств`, 'danger');
         return;
       }
 
@@ -179,7 +204,7 @@ const EmployeeDashboard = () => {
         amount: app.amount,
         currency_code: 'RUB',
         created_at: new Date().toISOString(),
-        description: `Открытие депозита на сумму ${app.amount.toLocaleString('ru-RU')} ₽ (${rate}%, ${app.term_months} ${getMonthWord(app.term_months)})`
+        description: `Открытие депозита на сумму ${app.amount} ₽ (${rate}%)`
       };
       mockTransactions.push(newTransaction);
 
@@ -194,15 +219,12 @@ const EmployeeDashboard = () => {
         currency_code: 'RUB'
       };
       mockDeposits.push(newDeposit);
-
-      showMessage(`Депозит на сумму ${app.amount.toLocaleString('ru-RU')} ₽ успешно открыт (${rate}%, ${app.term_months} ${getMonthWord(app.term_months)})`);
     } else if (app.product_type === 'карта') {
-      // Создание карты при одобрении
-      const last4 = String(Math.floor(1000 + Math.random() * 9000)).padStart(4, '0');
+      const last4 = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
       const cardNumber = `XXXX XXXX XXXX ${last4}`;
 
-      const expiryMonth = String(new Date().getMonth() + 1).padStart(2, '0');
-      const expiryYear = String(new Date().getFullYear() + 5).slice(-2);
+      const expiryMonth = (new Date().getMonth() + 1).toString().padStart(2, '0');
+      const expiryYear = (new Date().getFullYear() + 5).toString().slice(-2);
       const expiry = `${expiryMonth}/${expiryYear}`;
 
       const newCard = {
@@ -214,8 +236,6 @@ const EmployeeDashboard = () => {
         status: 'active',
       };
       mockCards.push(newCard);
-
-      showMessage(`Карта Visa Classic выпущена для клиента ${app.client_name}`);
     }
 
     saveData();
@@ -223,6 +243,7 @@ const EmployeeDashboard = () => {
 
   const handleRejectApplication = (app) => {
     app.status = 'rejected';
+    app.signed_by_bank = false;
     saveData();
     showMessage(`Заявка №${app.id} отклонена`, 'warning');
   };
@@ -233,15 +254,15 @@ const EmployeeDashboard = () => {
 
       <h2 className="mb-4">Кабинет сотрудника</h2>
 
-      <div className="d-flex justify-content-between mb-4">
+      <div className="d-flex justify-content-between mb-4 flex-wrap gap-3">
         <Button variant="primary" onClick={() => setShowOpenAccountModal(true)}>Открыть счёт клиенту</Button>
         <Button variant="success" onClick={() => setShowAccrueInterestModal(true)}>Начислить проценты</Button>
-        <Link to="/clients"><Button variant="info">Справочник клиентов</Button></Link>
+        <Link to="/clients"><Button variant="info">Клиенты</Button></Link>
+        <Link to="/accounts"><Button variant="secondary">Счета</Button></Link>
       </div>
 
-      {/* Таблица заявок */}
       <h3 className="mb-3">Заявки на продукты</h3>
-      <Table striped bordered hover>
+      <Table striped bordered hover responsive>
         <thead className="table-dark">
           <tr>
             <th>ID</th>
@@ -250,6 +271,7 @@ const EmployeeDashboard = () => {
             <th>Сумма</th>
             <th>Срок</th>
             <th>Статус</th>
+            <th>Подписан банком</th>
             <th>Действия</th>
           </tr>
         </thead>
@@ -262,8 +284,13 @@ const EmployeeDashboard = () => {
               <td>{app.amount.toLocaleString('ru-RU')} ₽</td>
               <td>{app.term_months} {getMonthWord(app.term_months)}</td>
               <td>
-                <Badge variant={app.status === 'pending' ? 'warning' : app.status === 'approved' ? 'success' : 'danger'}>
+                <Badge bg={app.status === 'pending' ? 'warning' : app.status === 'approved' ? 'success' : 'danger'}>
                   {app.status === 'pending' ? 'В ожидании' : app.status === 'approved' ? 'Одобрено' : 'Отклонено'}
+                </Badge>
+              </td>
+              <td>
+                <Badge bg={app.signed_by_bank ? 'success' : 'secondary'}>
+                  {app.signed_by_bank ? 'Да' : 'Нет'}
                 </Badge>
               </td>
               <td>
@@ -279,7 +306,7 @@ const EmployeeDashboard = () => {
         </tbody>
       </Table>
 
-      {/* Модальное окно открытия счёта */}
+      {/* Модалка открытия счёта с автогенерацией номера */}
       <Modal show={showOpenAccountModal} onHide={() => setShowOpenAccountModal(false)} centered>
         <Modal.Header closeButton className="bg-primary text-white">
           <Modal.Title>Открытие нового счёта</Modal.Title>
@@ -299,13 +326,12 @@ const EmployeeDashboard = () => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label>Номер счёта</Form.Label>
+              <Form.Label>Номер счёта (сгенерирован автоматически)</Form.Label>
               <Form.Control
                 name="account_number"
                 value={newAccount.account_number}
-                onChange={handleAccountChange}
-                placeholder="Например: 40817810000000000001"
-                required
+                readOnly
+                placeholder="Выберите клиента и валюту для генерации"
               />
             </Form.Group>
 
@@ -319,36 +345,33 @@ const EmployeeDashboard = () => {
             </Form.Group>
           </Modal.Body>
           <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowOpenAccountModal(false)}>
-              Отмена
-            </Button>
-            <Button variant="primary" type="submit">
-              Открыть счёт
-            </Button>
+            <Button variant="secondary" onClick={() => setShowOpenAccountModal(false)}>Отмена</Button>
+            <Button variant="primary" type="submit" disabled={!newAccount.account_number}>Открыть счёт</Button>
           </Modal.Footer>
         </Form>
       </Modal>
 
       {/* Модальное окно начисления процентов */}
-      <Modal show={showAccrueInterestModal} onHide={() => setShowAccrueInterestModal(false)} centered>
-        <Modal.Header closeButton className="bg-info text-white">
-          <Modal.Title>Начисление процентов по депозитам</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <p>Будет выполнено начисление процентов по всем активным депозитным договорам за текущий период.</p>
-          <Alert variant="warning">
-            Операция необратима. Рекомендуется выполнять в конце расчётного периода.
-          </Alert>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowAccrueInterestModal(false)}>
-            Отмена
-          </Button>
-          <Button variant="primary" onClick={handleAccrueInterest}>
-            Начислить проценты
-          </Button>
-        </Modal.Footer>
-      </Modal>
+<Modal show={showAccrueInterestModal} onHide={() => setShowAccrueInterestModal(false)} centered>
+  <Modal.Header closeButton className="bg-info text-white">
+    <Modal.Title>Начисление процентов по депозитам</Modal.Title>
+  </Modal.Header>
+  <Modal.Body>
+    <p>Будет выполнено начисление процентов по всем активным депозитным договорам за текущий период.</p>
+    <Alert variant="warning">
+      Операция необратима. Рекомендуется выполнять в конце расчётного периода.
+    </Alert>
+  </Modal.Body>
+  <Modal.Footer>
+    <Button variant="secondary" onClick={() => setShowAccrueInterestModal(false)}>
+      Отмена
+    </Button>
+    <Button variant="primary" onClick={handleAccrueInterest}>
+      Начислить проценты
+    </Button>
+  </Modal.Footer>
+</Modal>
+
     </div>
   );
 };
