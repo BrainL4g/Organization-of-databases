@@ -13,11 +13,25 @@ import {
   mockClients,
   mockCreditApplications,
   mockCredits,
-  mockCards,
+  mockCards,  // Добавили для создания карт
   mockDeposits,
+  mockProducts,
+  mockTransactions,
+  mockInterestPayments,
   saveData,
 } from '../../data/mockData';
 import { Link } from 'react-router-dom';
+
+// Функция склонения месяцев
+const getMonthWord = (num) => {
+  const lastDigit = num % 10;
+  const lastTwoDigits = num % 100;
+
+  if (lastTwoDigits >= 11 && lastTwoDigits <= 19) return 'месяцев';
+  if (lastDigit === 1) return 'месяц';
+  if (lastDigit >= 2 && lastDigit <= 4) return 'месяца';
+  return 'месяцев';
+};
 
 const EmployeeDashboard = () => {
   const [showOpenAccountModal, setShowOpenAccountModal] = useState(false);
@@ -64,181 +78,208 @@ const EmployeeDashboard = () => {
     setShowOpenAccountModal(false);
   };
 
+  // Начисление процентов
   const handleAccrueInterest = () => {
-    showMessage('Проценты по всем активным депозитам успешно начислены клиентам');
+    let totalAccrued = 0;
+
+    mockDeposits.forEach((dep) => {
+      if (dep.status === 'active') {
+        const monthlyInterest = (dep.amount * dep.interest_rate / 100) / 12;
+        const roundedInterest = Math.round(monthlyInterest * 100) / 100;
+
+        const clientAccount = mockAccounts.find(
+          acc => acc.id_client === dep.client_id && acc.currency_code === dep.currency_code
+        );
+
+        if (clientAccount) {
+          clientAccount.balance += roundedInterest;
+
+          const newTransaction = {
+            id_transaction: mockTransactions.length + 1,
+            sender_account_id: null,
+            receiver_account_id: clientAccount.id_account,
+            amount: roundedInterest,
+            currency_code: dep.currency_code,
+            created_at: new Date().toISOString(),
+            description: `Начисление процентов по депозиту №${dep.id_deposit} (${dep.interest_rate}%)`
+          };
+          mockTransactions.push(newTransaction);
+
+          totalAccrued += roundedInterest;
+        }
+
+        mockInterestPayments.push({
+          id_payment: mockInterestPayments.length + 1,
+          deposit_id: dep.id_deposit,
+          amount: roundedInterest,
+          payment_date: new Date().toISOString(),
+        });
+      }
+    });
+
+    saveData();
+    showMessage(`Проценты начислены на сумму ${totalAccrued.toLocaleString('ru-RU')} ₽ и записаны в историю операций`);
     setShowAccrueInterestModal(false);
   };
 
-  // Основная функция одобрения заявки — обрабатывает кредит, депозит и карту
+  // Одобрение заявки
   const handleApproveApplication = (app) => {
     app.status = 'approved';
+    showMessage(`Заявка №${app.id} (${app.product_type}) одобрена`);
 
     if (app.product_type === 'кредит') {
-      // Создаём кредит и зачисляем деньги
+      const creditProduct = mockProducts.find(p => p.name.toLowerCase().includes('кредит'));
+      const rate = creditProduct ? creditProduct.interest_rate : 15.0;
+
       const newCredit = {
-        id: mockCredits.length + 1,
+        id_credit: mockCredits.length + 1,
         client_id: app.client_id,
         amount: app.amount,
         term_months: app.term_months,
-        approved_at: new Date().toISOString(),
+        interest_rate: rate,
         status: 'active',
+        issued_at: new Date().toISOString(),
       };
       mockCredits.push(newCredit);
 
-      const clientAccount = mockAccounts.find((acc) => acc.id_client === app.client_id);
+      const clientAccount = mockAccounts.find(acc => acc.id_client === app.client_id && acc.currency_code === 'RUB');
       if (clientAccount) {
         clientAccount.balance += app.amount;
+
+        const newTransaction = {
+          id_transaction: mockTransactions.length + 1,
+          sender_account_id: null,
+          receiver_account_id: clientAccount.id_account,
+          amount: app.amount,
+          currency_code: 'RUB',
+          created_at: new Date().toISOString(),
+          description: `Зачисление кредита на сумму ${app.amount} ₽ (${rate}%)`
+        };
+        mockTransactions.push(newTransaction);
+      }
+    } else if (app.product_type === 'депозит') {
+      const depositProduct = mockProducts.find(p => p.name.toLowerCase().includes('депозит'));
+      const rate = depositProduct ? depositProduct.interest_rate : 7.5;
+
+      const clientAccount = mockAccounts.find(acc => acc.id_client === app.client_id && acc.currency_code === 'RUB');
+
+      if (!clientAccount || clientAccount.balance < app.amount) {
+        app.status = 'rejected';
+        saveData();
+        showMessage(`Заявка №${app.id} на депозит отклонена: недостаточно средств на счёте клиента`, 'danger');
+        return;
       }
 
-      showMessage(`Кредит на сумму ${app.amount.toLocaleString('ru-RU')} ₽ одобрен и зачислен клиенту ${app.client_name}`);
-    }
-    else if (app.product_type === 'депозит') {
-      // Создаём депозит и списываем деньги со счёта клиента
+      clientAccount.balance -= app.amount;
+
+      const newTransaction = {
+        id_transaction: mockTransactions.length + 1,
+        sender_account_id: clientAccount.id_account,
+        receiver_account_id: null,
+        amount: app.amount,
+        currency_code: 'RUB',
+        created_at: new Date().toISOString(),
+        description: `Открытие депозита на сумму ${app.amount.toLocaleString('ru-RU')} ₽ (${rate}%, ${app.term_months} ${getMonthWord(app.term_months)})`
+      };
+      mockTransactions.push(newTransaction);
+
       const newDeposit = {
-        id: mockDeposits.length + 1,
+        id_deposit: mockDeposits.length + 1,
         client_id: app.client_id,
         amount: app.amount,
-        interest_rate: 7.5, // Можно улучшить — брать из продукта
         term_months: app.term_months,
-        approved_at: new Date().toISOString(),
+        interest_rate: rate,
         status: 'active',
+        opened_at: new Date().toISOString(),
+        currency_code: 'RUB'
       };
       mockDeposits.push(newDeposit);
 
-      const clientAccount = mockAccounts.find(
-        (acc) => acc.id_client === app.client_id && acc.currency_code === 'RUB'
-      );
+      showMessage(`Депозит на сумму ${app.amount.toLocaleString('ru-RU')} ₽ успешно открыт (${rate}%, ${app.term_months} ${getMonthWord(app.term_months)})`);
+    } else if (app.product_type === 'карта') {
+      // Создание карты при одобрении
+      const last4 = String(Math.floor(1000 + Math.random() * 9000)).padStart(4, '0');
+      const cardNumber = `XXXX XXXX XXXX ${last4}`;
 
-      if (clientAccount && clientAccount.balance >= app.amount) {
-        clientAccount.balance -= app.amount;
-        showMessage(`Депозит на сумму ${app.amount.toLocaleString('ru-RU')} ₽ открыт. Деньги списаны со счёта клиента ${app.client_name}`);
-      } else {
-        showMessage('Недостаточно средств на счёте клиента для открытия депозита', 'danger');
-        app.status = 'declined'; // Откатываем статус
-      }
-    }
-    else if (app.product_type === 'карта') {
-      // Выпускаем карту
+      const expiryMonth = String(new Date().getMonth() + 1).padStart(2, '0');
+      const expiryYear = String(new Date().getFullYear() + 5).slice(-2);
+      const expiry = `${expiryMonth}/${expiryYear}`;
+
       const newCard = {
         id_card: mockCards.length + 1,
         id_client: app.client_id,
-        card_number: '**** **** **** ' + Math.floor(1000 + Math.random() * 9000),
-        card_type: 'Debit Visa',
-        expiry_date: '12/' + (new Date().getFullYear() + 5).toString().slice(-2),
+        card_number: cardNumber,
+        card_type: 'Visa Classic',
+        expiry_date: expiry,
         status: 'active',
       };
       mockCards.push(newCard);
-      showMessage(`Карта успешно выпущена клиенту ${app.client_name}`);
+
+      showMessage(`Карта Visa Classic выпущена для клиента ${app.client_name}`);
     }
 
     saveData();
   };
 
-  const handleDeclineApplication = (app) => {
-    app.status = 'declined';
+  const handleRejectApplication = (app) => {
+    app.status = 'rejected';
     saveData();
-    showMessage(`Заявка клиента ${app.client_name} отклонена`, 'warning');
+    showMessage(`Заявка №${app.id} отклонена`, 'warning');
   };
-
-  const pendingApplications = mockCreditApplications.filter((app) => app.status === 'pending');
 
   return (
     <div>
-      <h2 className="mb-5 text-center text-primary fw-bold">Кабинет сотрудника банка</h2>
+      {message.text && <Alert variant={message.variant} className="mb-4">{message.text}</Alert>}
 
-      {message.text && (
-        <Alert
-          variant={message.variant}
-          dismissible
-          onClose={() => setMessage({ text: '', variant: '' })}
-        >
-          {message.text}
-        </Alert>
-      )}
+      <h2 className="mb-4">Кабинет сотрудника</h2>
 
-      <div className="d-flex justify-content-around mb-5 flex-wrap gap-3">
-        <Button
-          variant="primary"
-          size="lg"
-          className="px-5 py-3 shadow flex-grow-1"
-          style={{ maxWidth: '300px' }}
-          onClick={() => setShowOpenAccountModal(true)}
-        >
-          Открыть новый счёт
-        </Button>
-
-        <Link to="/transactions">
-          <Button
-            variant="outline-primary"
-            size="lg"
-            className="px-5 py-3 shadow flex-grow-1"
-            style={{ maxWidth: '300px' }}
-          >
-            Мониторинг транзакций
-          </Button>
-        </Link>
-
-        <Button
-          variant="info"
-          size="lg"
-          className="px-5 py-3 shadow flex-grow-1"
-          style={{ maxWidth: '300px' }}
-          onClick={() => setShowAccrueInterestModal(true)}
-        >
-          Начислить проценты по депозитам
-        </Button>
+      <div className="d-flex justify-content-between mb-4">
+        <Button variant="primary" onClick={() => setShowOpenAccountModal(true)}>Открыть счёт клиенту</Button>
+        <Button variant="success" onClick={() => setShowAccrueInterestModal(true)}>Начислить проценты</Button>
+        <Link to="/clients"><Button variant="info">Справочник клиентов</Button></Link>
       </div>
 
-      <h3 className="mb-4 text-secondary">Заявки на продукты (кредиты, депозиты, карты)</h3>
-
-      {pendingApplications.length === 0 ? (
-        <Alert variant="info">Нет новых заявок на рассмотрение</Alert>
-      ) : (
-        <Table striped bordered hover responsive className="shadow-sm">
-          <thead className="table-primary">
-            <tr>
-              <th>Клиент</th>
-              <th>Тип продукта</th>
-              <th>Сумма</th>
-              <th>Срок (мес.)</th>
-              <th>Статус</th>
-              <th>Действия</th>
+      {/* Таблица заявок */}
+      <h3 className="mb-3">Заявки на продукты</h3>
+      <Table striped bordered hover>
+        <thead className="table-dark">
+          <tr>
+            <th>ID</th>
+            <th>Клиент</th>
+            <th>Тип</th>
+            <th>Сумма</th>
+            <th>Срок</th>
+            <th>Статус</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody>
+          {mockCreditApplications.map(app => (
+            <tr key={app.id}>
+              <td>{app.id}</td>
+              <td>{app.client_name}</td>
+              <td>{app.product_type}</td>
+              <td>{app.amount.toLocaleString('ru-RU')} ₽</td>
+              <td>{app.term_months} {getMonthWord(app.term_months)}</td>
+              <td>
+                <Badge variant={app.status === 'pending' ? 'warning' : app.status === 'approved' ? 'success' : 'danger'}>
+                  {app.status === 'pending' ? 'В ожидании' : app.status === 'approved' ? 'Одобрено' : 'Отклонено'}
+                </Badge>
+              </td>
+              <td>
+                {app.status === 'pending' && (
+                  <>
+                    <Button variant="success" size="sm" onClick={() => handleApproveApplication(app)} className="me-2">Одобрить</Button>
+                    <Button variant="danger" size="sm" onClick={() => handleRejectApplication(app)}>Отклонить</Button>
+                  </>
+                )}
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {pendingApplications.map((app) => (
-              <tr key={app.id}>
-                <td>{app.client_name}</td>
-                <td className="text-capitalize">{app.product_type}</td>
-                <td>{app.amount ? app.amount.toLocaleString('ru-RU') + ' ₽' : '—'}</td>
-                <td>{app.term_months || '—'}</td>
-                <td>
-                  <Badge bg="warning">На рассмотрении</Badge>
-                </td>
-                <td>
-                  <Button
-                    variant="success"
-                    size="sm"
-                    className="me-2"
-                    onClick={() => handleApproveApplication(app)}
-                  >
-                    Одобрить
-                  </Button>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={() => handleDeclineApplication(app)}
-                  >
-                    Отклонить
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
-      )}
+          ))}
+        </tbody>
+      </Table>
 
-      {/* Модальное окно открытия нового счёта */}
+      {/* Модальное окно открытия счёта */}
       <Modal show={showOpenAccountModal} onHide={() => setShowOpenAccountModal(false)} centered>
         <Modal.Header closeButton className="bg-primary text-white">
           <Modal.Title>Открытие нового счёта</Modal.Title>
@@ -246,12 +287,12 @@ const EmployeeDashboard = () => {
         <Form onSubmit={handleOpenAccount}>
           <Modal.Body>
             <Form.Group className="mb-3">
-              <Form.Label>Клиент</Form.Label>
+              <Form.Label>ID клиента</Form.Label>
               <Form.Select name="id_client" value={newAccount.id_client} onChange={handleAccountChange} required>
                 <option value="">Выберите клиента</option>
-                {mockClients.map((client) => (
+                {mockClients.map(client => (
                   <option key={client.id_client} value={client.id_client}>
-                    {client.full_name} (ID: {client.id_client})
+                    {client.id_client}: {client.full_name}
                   </option>
                 ))}
               </Form.Select>

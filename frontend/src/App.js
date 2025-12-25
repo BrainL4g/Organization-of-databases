@@ -5,7 +5,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Layout from './components/Layout';
 import PrivateRoute from './components/PrivateRoute';
 import SettingsPage from './pages/Settings/SettingsPage';
-
+import TaskTracker from './pages/TaskTracker';
 import Home from './pages/Home';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -61,6 +61,7 @@ function App() {
             {/* Главная страница — только для гостей */}
             <Route path="/" element={<HomeWrapper />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/tasks" element={<TaskTracker />} />
             {/* Публичные страницы */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />

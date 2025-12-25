@@ -10,7 +10,7 @@ import {
   Row,
   Col,
 } from 'react-bootstrap';
-import { mockAccounts, mockTransactions, saveData } from '../../data/mockData';
+import { mockAccounts, mockTransactions, saveData, mockClients } from '../../data/mockData';
 import { useAuth } from '../../context/AuthContext';
 import { ROLES } from '../../utils/roles';
 
@@ -34,7 +34,11 @@ const TransactionList = () => {
   const [filterType, setFilterType] = useState('all');
 
   // ID клиента для демонстрации
-  const clientId = 1;
+  const currentClient = mockClients.find(c => c.login === currentUser.login);
+  const clientId = currentClient ? currentClient.id_client : null;
+  if (isClient && !clientId) {
+    return <Alert variant="danger">Ошибка: клиент не найден</Alert>;
+  }
   const clientAccountIds = mockAccounts
     .filter((acc) => acc.id_client === clientId)
     .map((acc) => acc.id_account);
