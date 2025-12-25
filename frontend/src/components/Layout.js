@@ -4,11 +4,10 @@ import CustomNavbar from './Navbar';
 import { Container } from 'react-bootstrap';
 
 const Layout = ({ children }) => {
-  // Убрали useAuth и useEffect — загрузка теперь в AuthProvider
   return (
     <>
-      <CustomNavbar />
-      <Container fluid="lg" className="py-4">
+      <CustomNavbar /> {/* Хедер сам решает, показываться ли */}
+      <Container className="mt-4 pb-5">
         {children}
       </Container>
     </>

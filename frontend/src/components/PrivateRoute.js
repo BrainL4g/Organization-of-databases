@@ -2,15 +2,19 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import LoadingSpinner from './LoadingSpinner'; // Если есть спиннер, иначе просто текст
 
 const PrivateRoute = ({ children, allowedRoles = [] }) => {
   const { currentUser, loading } = useAuth();
 
   if (loading) {
     return (
-      <div className="text-center my-5">
-        <LoadingSpinner /> {/* Или просто <p>Загрузка...</p> */}
+      <div className="min-vh-100 d-flex align-items-center justify-content-center">
+        <div className="text-center">
+          <div className="spinner-border text-primary" role="status" style={{ width: '3rem', height: '3rem' }}>
+            <span className="visually-hidden">Загрузка...</span>
+          </div>
+          <p className="mt-3 fs-4 text-white">Проверка авторизации...</p>
+        </div>
       </div>
     );
   }

@@ -8,54 +8,58 @@ import { Link } from 'react-router-dom';
 const CustomNavbar = () => {
   const { currentUser, logout } = useAuth();
 
+  // Если пользователь не залогинен — хедер не показываем
+  if (!currentUser) {
+    return null;
+  }
+
   return (
-    <Navbar bg="dark" variant="dark" expand="lg" className="mb-4">
+    <Navbar bg="dark" variant="dark" expand="lg" className="shadow-sm">
       <Container>
-        <Navbar.Brand as={Link} to="/">Банковская система</Navbar.Brand>
-        <Navbar.Toggle aria-controls="basic-navbar-nav" />
-        <Navbar.Collapse id="basic-navbar-nav">
+        <Navbar.Brand as={Link} to="/">
+          <strong>Банковская система</strong>
+        </Navbar.Brand>
+
+        <Navbar.Toggle aria-controls="navbar-nav" />
+
+        <Navbar.Collapse id="navbar-nav">
           <Nav className="me-auto">
-            {currentUser ? (
+            {currentUser.role === ROLES.CLIENT && (
               <>
-                {currentUser.role === ROLES.CLIENT && (
-                  <>
-                    <Nav.Link as={Link} to="/client">Мой кабинет</Nav.Link>
-                    <Nav.Link as={Link} to="/transactions">Операции</Nav.Link>
-                    <Nav.Link as={Link} to="/products">Продукты</Nav.Link>
-                  </>
-                )}
-                {currentUser.role === ROLES.EMPLOYEE && (
-                  <>
-                    <Nav.Link as={Link} to="/employee">Кабинет сотрудника</Nav.Link>
-                    <Nav.Link as={Link} to="/clients">Клиенты</Nav.Link>
-                    <Nav.Link as={Link} to="/accounts">Счета</Nav.Link>
-                    <Nav.Link as={Link} to="/transactions">Транзакции</Nav.Link>
-                  </>
-                )}
-                {currentUser.role === ROLES.ADMIN && (
-                  <>
-                    <Nav.Link as={Link} to="/admin">Админ-панель</Nav.Link>
-                    <Nav.Link as={Link} to="/clients">Клиенты</Nav.Link>
-                    <Nav.Link as={Link} to="/products">Продукты</Nav.Link>
-                    <Nav.Link as={Link} to="/accounts">Счета</Nav.Link>
-                  </>
-                )}
+                <Nav.Link as={Link} to="/client">Мой кабинет</Nav.Link>
+                <Nav.Link as={Link} to="/transactions">Операции</Nav.Link>
+                <Nav.Link as={Link} to="/products">Продукты</Nav.Link>
               </>
-            ) : (
+            )}
+            {currentUser.role === ROLES.EMPLOYEE && (
               <>
-                <Nav.Link as={Link} to="/login">Вход</Nav.Link>
-                <Nav.Link as={Link} to="/register">Регистрация</Nav.Link>
+                <Nav.Link as={Link} to="/employee">Кабинет сотрудника</Nav.Link>
+                <Nav.Link as={Link} to="/clients">Клиенты</Nav.Link>
+                <Nav.Link as={Link} to="/accounts">Счета</Nav.Link>
+                <Nav.Link as={Link} to="/transactions">Транзакции</Nav.Link>
+              </>
+            )}
+            {currentUser.role === ROLES.ADMIN && (
+              <>
+                <Nav.Link as={Link} to="/admin">Админ-панель</Nav.Link>
+                <Nav.Link as={Link} to="/clients">Клиенты</Nav.Link>
+                <Nav.Link as={Link} to="/products">Продукты</Nav.Link>
+                <Nav.Link as={Link} to="/accounts">Счета</Nav.Link>
               </>
             )}
           </Nav>
-          {currentUser && (
-            <Nav>
-              <Navbar.Text className="text-light me-3">
-                {currentUser.full_name} ({currentUser.role})
-              </Navbar.Text>
-              <Nav.Link onClick={logout} style={{ color: 'white' }}>Выйти</Nav.Link>
-            </Nav>
-          )}
+
+          <Nav>
+            <Navbar.Text className="text-light me-4">
+              {currentUser.full_name}
+              <small className="text-muted ms-2">
+                ({currentUser.role === 'client' ? 'Клиент' : currentUser.role === 'employee' ? 'Сотрудник' : 'Администратор'})
+              </small>
+            </Navbar.Text>
+            <Nav.Link onClick={logout} className="text-danger fw-bold">
+              Выйти
+            </Nav.Link>
+          </Nav>
         </Navbar.Collapse>
       </Container>
     </Navbar>
