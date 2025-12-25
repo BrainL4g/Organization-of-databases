@@ -1,6 +1,7 @@
+// src/context/AuthContext.js
 import React, { createContext, useState, useContext } from 'react';
 import { mockUsers } from '../data/mockData';
-import { ROLES } from '../utils/roles';
+// import { ROLES } from '../utils/roles';  // УДАЛИ ЭТУ СТРОКУ
 
 const AuthContext = createContext();
 
