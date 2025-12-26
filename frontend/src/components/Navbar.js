@@ -8,7 +8,6 @@ import { Link } from 'react-router-dom';
 const CustomNavbar = () => {
   const { currentUser, logout } = useAuth();
 
-  // Если пользователь не залогинен — хедер не показываем
   if (!currentUser) {
     return null;
   }
@@ -45,6 +44,10 @@ const CustomNavbar = () => {
                 <Nav.Link as={Link} to="/clients">Клиенты</Nav.Link>
                 <Nav.Link as={Link} to="/products">Продукты</Nav.Link>
                 <Nav.Link as={Link} to="/accounts">Счета</Nav.Link>
+                <Nav.Link as={Link} to="/currency">Курсы валют</Nav.Link>
+                <Nav.Link as={Link} to="/classifiers">Справочники</Nav.Link>
+                <Nav.Link as={Link} to="/reports">Отчёты</Nav.Link>
+                <Nav.Link as={Link} to="/logs">Логи операций</Nav.Link>  {/* Новая ссылка */}
               </>
             )}
           </Nav>

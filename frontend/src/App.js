@@ -9,6 +9,10 @@ import TaskTracker from './pages/TaskTracker';
 import Home from './pages/Home';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import CurrencySettings from './pages/Admin/CurrencySettings';
+import Classifiers from './pages/Admin/Classifiers';
+import Reports from './pages/Admin/Reports';  // Изменённый путь, если нужно
+import OperationLogs from './pages/Admin/OperationLogs';  // Новый компонент
 
 import ClientDashboard from './pages/Dashboard/ClientDashboard';
 import EmployeeDashboard from './pages/Dashboard/EmployeeDashboard';
@@ -62,6 +66,10 @@ function App() {
             <Route path="/" element={<HomeWrapper />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/tasks" element={<TaskTracker />} />
+            <Route path="/currency" element={<PrivateRoute allowedRoles={[ROLES.ADMIN]}><CurrencySettings /></PrivateRoute>} />
+            <Route path="/classifiers" element={<PrivateRoute allowedRoles={[ROLES.ADMIN]}><Classifiers /></PrivateRoute>} />
+            <Route path="/reports" element={<PrivateRoute allowedRoles={[ROLES.ADMIN]}><Reports /></PrivateRoute>} />
+            <Route path="/logs" element={<PrivateRoute allowedRoles={[ROLES.ADMIN]}><OperationLogs /></PrivateRoute>} />  {/* Новый маршрут */}
             {/* Публичные страницы */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />

@@ -54,7 +54,7 @@ const tasks = [
     ]
   },
   {
-    section: '2. СОТРУДНИК БАНКА',
+    section: '2. Сотрудник банка',
     subsections: [
       {
         title: '2.1. Работа с клиентами',
@@ -76,7 +76,6 @@ const tasks = [
         title: '2.3. Проведение операций по заявке клиента',
         items: [
           'Ручное проведение транзакций',
-          'Перевод, пополнение, снятие',
           'Подтверждение транзакции',
           'Начисление процентов по депозитам',
           'Автоматическое или ручное начисление'
@@ -91,6 +90,45 @@ const tasks = [
           'Фильтр по клиенту, валюте, статусу',
           'Транзакции',
           'История операций по клиенту/счёту'
+        ]
+      }
+    ]
+  },
+  {
+    section: '3. Администратор системы',
+    subsections: [
+      {
+        title: '3.1. Управление пользователями',
+        items: [
+          'Создание учётных записей сотрудников',
+          'Изменение данных пользователей (логин, пароль, контакты)',
+          'Блокировка/разблокировка учётных записей (клиентов и сотрудников)'
+        ]
+      },
+      {
+        title: '3.2. Управление банковскими продуктами',
+        items: [
+          'Создание/редактирование/удаление продуктов (кредиты, депозиты, карты)',
+          'Настройка процентных ставок, сроков, лимитов',
+          'Настройка типов счетов',
+          'Настройка валют и курсов'
+        ]
+      },
+      {
+        title: '3.3. Ведение справочников-классификаторов',
+        items: [
+          'Статусы транзакций',
+          'Типы продуктов'
+        ]
+      },
+      {
+        title: '3.4. Мониторинг и отчётность',
+        items: [
+          'Просмотр логов операций',
+          'Формирование отчётов по клиентам',
+          'Формирование отчётов по продуктам',
+          'Формирование отчётов по транзакциям',
+          'Фильтр по дате, статусу, типу операции'
         ]
       }
     ]
@@ -137,30 +175,31 @@ const TaskTracker = () => {
 
   return (
     <Container className="my-5">
-      <Card className="shadow">
-        <Card.Header className="bg-primary text-white text-center">
-          <h2>Прогресс по техническому заданию</h2>
+      <Card className="shadow-lg border-0">
+        <Card.Header className="bg-gradient text-white text-center py-4" style={{ background: 'linear-gradient(135deg, #0d6efd, #6610f2)' }}>
+          <h2 className="mb-0 fw-bold">Прогресс по техническому заданию</h2>
         </Card.Header>
-        <Card.Body>
-          <Alert variant="success" className="text-center">
-            <strong>Общий прогресс: {completedTasks} из {totalTasks} ({progress}%)</strong>
+        <Card.Body className="p-5">
+          <Alert variant={progress === 100 ? 'success' : progress >= 70 ? 'info' : 'warning'} className="text-center fs-4">
+            <strong>Общий прогресс: {completedTasks} из {totalTasks} задач ({progress}%)</strong>
           </Alert>
 
           <ProgressBar
             animated
             now={progress}
-            label={`${progress}%`}
-            variant="success"
-            className="mb-5"
-            style={{ height: '40px', fontSize: '1.2rem' }}
+            label={`${progress}% завершено`}
+            variant={progress === 100 ? 'success' : progress >= 70 ? 'info' : 'warning'}
+            className="mb-5 shadow-sm"
+            style={{ height: '50px', fontSize: '1.4rem', fontWeight: 'bold' }}
+            striped
           />
 
           {tasks.map((section, sIdx) => (
-            <div key={sIdx} className="mb-5">
-              <h3 className="text-primary border-bottom pb-2">{section.section}</h3>
+            <div key={sIdx} className="mb-5 p-4 rounded" style={{ backgroundColor: '#f8f9fa', borderLeft: '5px solid #0d6efd' }}>
+              <h3 className="text-primary border-bottom pb-3 fw-bold">{section.section}</h3>
               {section.subsections.map((sub, subIdx) => (
-                <div key={subIdx} className="mb-4 ms-3">
-                  <h5 className="text-dark">{sub.title}</h5>
+                <div key={subIdx} className="mb-4 ms-4">
+                  <h5 className="text-dark fw-semibold">{sub.title}</h5>
                   {sub.items.map((item, iIdx) => {
                     const key = `${sIdx}-${subIdx}-${iIdx}`;
                     const isChecked = checked[key] || false;
@@ -173,7 +212,7 @@ const TaskTracker = () => {
                         label={item}
                         checked={isChecked}
                         onChange={() => handleCheck(sIdx, subIdx, iIdx)}
-                        className="mb-2"
+                        className="mb-3 fs-5"
                         style={{ fontSize: '1.1rem' }}
                       />
                     );

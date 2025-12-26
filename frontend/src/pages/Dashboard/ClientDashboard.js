@@ -177,7 +177,7 @@ const ClientDashboard = () => {
     let description = transfer.description || 'Перевод средств';
 
     if (sender.currency_code !== receiver.currency_code) {
-      const EXCHANGE_RATE = 80;
+      const EXCHANGE_RATE = parseFloat(localStorage.getItem('usdRate')) || 80;
       if (sender.currency_code === 'RUB' && receiver.currency_code === 'USD') {
         finalAmount = amountNum / EXCHANGE_RATE;
       } else if (sender.currency_code === 'USD' && receiver.currency_code === 'RUB') {
